@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Modo Colaborativo FinSense - Gestiona gastos grupales, divide cuentas equitativamente y consulta balances.">
+  <title>Gastos Compartidos - FinSense</title>
+  
+  <!-- CSS Directives -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layouts.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/pages/grupos.css">
+  
+  <!-- PWA Directives -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1A56DB">
+</head>
+<body>
+
+  <!-- Mesh Gradient Background & Morphs -->
+  <div class="bg-mesh"></div>
+  <div class="organic-blob blob-morphing" style="top: 20%; right: 10%; width: 420px; height: 420px; background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(26, 86, 219, 0.08));"></div>
+  <div class="organic-blob blob-morphing" style="bottom: 15%; left: 15%; width: 380px; height: 380px; animation-delay: -9s;"></div>
+
+  <div class="app-container">
+    
+    <!-- COMPONENT: DesktopSidebar -->
+    <aside class="sidebar">
+      <div>
+        <div class="logo-container">
+          <span class="logo-icon">🥤</span>
+          <span class="logo-text text-gradient">FinSense</span>
+        </div>
+        <ul class="nav-links">
+          <li class="nav-item"><a href="index.html">🏠 Inicio</a></li>
+          <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
+          <li class="nav-item"><a href="registro.html">📝 Registrar</a></li>
+          <li class="nav-item"><a href="metas.html">🎯 Metas</a></li>
+          <li class="nav-item"><a href="grupos.html">👥 Grupos</a></li>
+          <li class="nav-item"><a href="perfil.html">👤 Perfil</a></li>
+        </ul>
+      </div>
+      
+      <!-- Mini perfil inferior sidebar -->
+      <a href="perfil.html" title="Ver mi Perfil" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; border-top: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; transition: background 0.2s ease; cursor: pointer;" onmouseenter="this.style.background='rgba(26,86,219,0.06)'" onmouseleave="this.style.background='transparent'">
+        <div id="sidebar-user-avatar" class="avatar" style="background-color: var(--color-primary);">🦖</div>
+        <div>
+          <h4 id="sidebar-user-name" style="font-size: 0.85rem; font-weight: 700;">Kaled (Tú)</h4>
+          <p id="sidebar-user-city" style="font-size: 0.7rem; color: var(--color-text-muted);">Tuxtla Gutiérrez</p>
+        </div>
+        <span style="margin-left: auto; font-size: 0.7rem; color: var(--color-text-muted);">›</span>
+      </a>
+    </aside>
+
+    <!-- COMPONENT: MobileBottomNav -->
+    <nav class="bottom-nav">
+      <a href="index.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">🏠</span>
+        <span>Inicio</span>
+      </a>
+      <a href="dashboard.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">📊</span>
+        <span>Panel</span>
+      </a>
+      <a href="registro.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon" style="font-size: 1.6rem; transform: translateY(-2px);">➕</span>
+        <span>Registrar</span>
+      </a>
+      <a href="metas.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">🎯</span>
+        <span>Metas</span>
+      </a>
+      <a href="perfil.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">👤</span>
+        <span>Perfil</span>
+      </a>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      
+      <header class="animate-fade-up" style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px;">Cuentas Compartidas</h1>
+          <p style="font-size: 0.9rem; color: var(--color-text-muted);">Gestiona gastos de casa, salidas y eventos con tus amigos.</p>
+        </div>
+      </header>
+
+      <!-- COMPONENT: GroupInfoHeader -->
+      <section class="glass-card group-header-card animate-fade-up delay-1">
+        <div class="group-details">
+          <span class="badge badge-accent" style="align-self: flex-start;">Grupo Activo</span>
+          <h2 class="group-title" style="margin-top: 0.3rem;">Los Compas del Pozol 🥤</h2>
+          <p style="font-size: 0.8rem; color: var(--color-text-muted);">4 miembros activos • Creado el 20 de mayo, 2026</p>
+        </div>
+        
+        <!-- Stack de Miembros -->
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+          <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted);">Integrantes</span>
+          <div id="group-avatar-stack" class="avatar-stack">
+            <!-- Cargado dinámicamente desde GroupService -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 1. DEUDAS CRUZADAS CON EFECTO FLIP -->
+      <section style="margin-bottom: 2.5rem;">
+        <div style="margin-bottom: 1.25rem;">
+          <h3 style="font-size: 1.2rem; font-weight: 800;" class="animate-fade-up delay-2">Balance Cruzado de Deudas</h3>
+          <p style="font-size: 0.8rem; color: var(--color-text-muted);" class="animate-fade-up delay-2">Presiona sobre cualquier tarjeta para ver el desglose en 3D.</p>
+        </div>
+        
+        <div id="group-balances-cards" class="balances-grid animate-fade-up delay-2">
+          <!-- Cargado dinámicamente desde GroupService con estructura 3D Flip Card -->
+        </div>
+      </section>
+
+      <!-- 2. HISTORIAL DE GASTOS COMPARTIDOS -->
+      <section style="margin-bottom: 4rem;">
+        <div class="shared-expenses-header animate-fade-up delay-3">
+          <h3 style="font-size: 1.2rem; font-weight: 800;">Historial de Gastos Compartidos</h3>
+          <button id="btn-trigger-group-modal" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+            Dividir Gasto
+          </button>
+        </div>
+        
+        <div id="group-shared-expenses-list" class="animate-fade-up delay-3">
+          <!-- Cargado dinámicamente desde GroupService -->
+        </div>
+      </section>
+
+      <!-- COMPONENT: AddGroupExpenseFloatingButton (FAB) -->
+      <button id="fab-add-group-expense" class="btn btn-fab btn-shimmer" title="Añadir gasto compartido">
+        ➕
+      </button>
+
+    </main>
+
+  </div>
+
+  <!-- COMPONENT: AddGroupExpenseModal -->
+  <div id="group-expense-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content animate-modal">
+      <button class="modal-close-btn" id="btn-close-group-modal">&times;</button>
+      <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem; color: var(--color-primary);">Registrar Gasto Grupal 👥</h3>
+      <form id="group-expense-form" style="display: flex; flex-direction: column; gap: 1rem;">
+        
+        <div class="input-group">
+          <label class="input-label" for="group-tx-description">¿Qué compraron para la banda?</label>
+          <input type="text" id="group-tx-description" class="input-field" placeholder="Ej. Cubeta de pozol o empanadas" required style="background: rgba(255,255,255,0.9);">
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+          <div class="input-group" style="flex: 1;">
+            <label class="input-label" for="group-tx-amount">Monto ($)</label>
+            <input type="number" id="group-tx-amount" class="input-field" step="0.01" min="0.01" placeholder="0.00" required style="background: rgba(255,255,255,0.9);">
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <label class="input-label" for="group-tx-payer">¿Quién pagó?</label>
+            <select id="group-tx-payer" class="input-field" style="background: rgba(255,255,255,0.9); padding-right: 2rem;">
+              <option value="user">Tú (Kaled)</option>
+              <option value="friend_1">Sofía</option>
+              <option value="friend_2">Alejandro</option>
+              <option value="friend_3">Mariana</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="group-tx-split">División del Gasto</label>
+          <select id="group-tx-split" class="input-field" style="background: rgba(255,255,255,0.9); padding-right: 2rem;">
+            <option value="equitativo">Equitativo (Partes iguales)</option>
+            <option value="mitad">50/50 (Tú y el pagador)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+          👥 Agregar y Dividir
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

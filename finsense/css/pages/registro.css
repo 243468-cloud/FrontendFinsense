@@ -1,0 +1,132 @@
+/* ==========================================
+   REGISTRO TRANSACTION SHEET SPECIFIC STYLES
+   ========================================== */
+
+/* 1. SECTOR DE MONTO DE DINERO */
+.amount-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1.5rem 0 2rem 0;
+  text-align: center;
+}
+
+.amount-currency-symbol {
+  font-family: var(--font-numeric);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-right: 0.2rem;
+}
+
+.amount-input-field {
+  font-family: var(--font-numeric);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-text);
+  text-align: center;
+  width: 100%;
+  max-width: 280px;
+  border-bottom: 2.5px dashed rgba(26, 86, 219, 0.2);
+  padding: 0.25rem;
+  transition: border-bottom-color var(--transition-normal);
+}
+
+.amount-input-field:focus {
+  border-bottom-color: var(--color-primary);
+}
+
+/* Ocultar flechas numéricas nativas */
+.amount-input-field::-webkit-outer-spin-button,
+.amount-input-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 2. GRID DE CATEGORÍAS MODERNO */
+.category-selector-label {
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-bottom: 0.8rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 2rem;
+}
+
+.category-grid-item {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(26, 86, 219, 0.08);
+  border-radius: var(--radius-md);
+  padding: 1rem 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.category-grid-item:hover {
+  background: var(--color-surface);
+  transform: translateY(-2px);
+  border-color: rgba(26, 86, 219, 0.15);
+}
+
+.category-grid-item.active {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 20px -6px rgba(26, 86, 219, 0.15);
+}
+
+.category-icon {
+  font-size: 1.6rem;
+  transition: transform var(--transition-normal);
+}
+
+.category-grid-item.active .category-icon {
+  transform: scale(1.25);
+}
+
+.category-name {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--color-text);
+}
+
+/* Formulario */
+.registro-form-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ==========================================
+   RESPONSIVIDAD REGISTRO
+   ========================================== */
+@media (max-width: 640px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+  
+  .category-grid-item {
+    padding: 0.8rem 0.4rem;
+  }
+  
+  .category-icon {
+    font-size: 1.4rem;
+  }
+  
+  .category-name {
+    font-size: 0.7rem;
+  }
+}

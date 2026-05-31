@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Sora:wght@100..800&display=swap');
+
+/* ==========================================
+   CSS SYSTEM DESIGN & VARIABLES
+   ========================================== */
+:root {
+  /* Paleta de Colores FinSense (Fintech Orgánica Mexicana) */
+  --color-bg: #F0F4FF;          /* Fondo principal: azul hielo muy suave */
+  --color-surface: #FFFFFF;     /* Tarjetas y superficies */
+  --color-primary: #1A56DB;     /* Azul eléctrico principal */
+  --color-primary-light: #3B82F6;
+  --color-primary-dark: #1239A6;
+  --color-accent: #06B6D4;      /* Cyan/Teal vivo de acento */
+  --color-text: #0F172A;        /* Texto principal casi negro */
+  --color-text-muted: #64748B;  /* Texto secundario muted */
+  --color-success: #10B981;     /* Verde para ingresos/logros */
+  --color-warning: #F59E0B;     /* Amarillo/Ambar para alertas */
+  --color-danger: #EF4444;      /* Rojo para gastos excesivos */
+  
+  /* Transparencias / Glassmorphism */
+  --color-glass: rgba(255, 255, 255, 0.55);
+  --color-glass-dark: rgba(15, 23, 42, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.4);
+  --shadow-glass: 0 8px 32px 0 rgba(26, 86, 219, 0.08);
+  
+  /* Sombras Premium con tintes de color */
+  --shadow-sm: 0 2px 8px rgba(26, 86, 219, 0.04);
+  --shadow-md: 0 10px 25px -5px rgba(26, 86, 219, 0.08), 0 8px 16px -6px rgba(26, 86, 219, 0.06);
+  --shadow-lg: 0 20px 40px -10px rgba(26, 86, 219, 0.12), 0 12px 20px -8px rgba(26, 86, 219, 0.08);
+  --shadow-success: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+  --shadow-accent: 0 10px 20px -5px rgba(6, 182, 212, 0.3);
+
+  /* Tipografías */
+  --font-title: 'Sora', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-numeric: 'JetBrains Mono', monospace;
+
+  /* Bordes y Radios */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Transiciones */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================
+   RESET & ESTILOS BASE
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar Personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Estilos de Texto Base */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+/* Input & Button Reset */
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Utilidades Comunes */
+.text-numeric {
+  font-family: var(--font-numeric);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-mesh {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  overflow: hidden;
+  background: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+              radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+              radial-gradient(at 100% 100%, rgba(26, 86, 219, 0.1) 0px, transparent 50%),
+              radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+  background-color: var(--color-bg);
+}
+
+.organic-blob {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(26, 86, 219, 0.25), rgba(6, 182, 212, 0.2));
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ==========================================
+   DARK THEME VARIABLES (MODO OSCURO)
+   ========================================== */
+body.dark-mode {
+  --color-bg: #0B0F19;
+  --color-surface: #1E293B;
+  --color-text: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --color-glass: rgba(30, 41, 59, 0.75);
+  --color-glass-dark: rgba(15, 23, 42, 0.4);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -6px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.4), 0 12px 20px -8px rgba(0, 0, 0, 0.3);
+  background-color: var(--color-bg);
+}
+
+body.dark-mode input.input-field,
+body.dark-mode select.input-field,
+body.dark-mode textarea.input-field {
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tx-item {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tx-item:hover {
+  background: rgba(30, 41, 59, 0.8);
+}
+

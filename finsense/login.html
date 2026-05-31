@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Iniciar Sesión / Registro - FinSense - Gestiona tus finanzas personales y conéctate con tus amigos.">
+  <title>Acceso FinSense - Fintech Orgánica Mexicana</title>
+  
+  <!-- CSS Directives -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layouts.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/pages/login.css">
+  
+  <!-- PWA Directives -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1A56DB">
+</head>
+<body>
+
+  <!-- Mesh Gradient Background & Morphs -->
+  <div class="bg-mesh"></div>
+  <div class="organic-blob blob-morphing" style="top: 15%; left: 15%; width: 450px; height: 450px; background: linear-gradient(135deg, rgba(26, 86, 219, 0.25), rgba(6, 182, 212, 0.2));"></div>
+  <div class="organic-blob blob-morphing" style="bottom: 10%; right: 15%; width: 350px; height: 350px; animation-delay: -4s;"></div>
+
+  <main class="login-page-container">
+    
+    <!-- COMPONENT: AuthCard -->
+    <div class="glass-card login-card animate-fade-up">
+      
+      <!-- Logo FinSense Header -->
+      <div class="login-logo">
+        <span class="logo-icon">🥤</span>
+        <span class="logo-text text-gradient">FinSense</span>
+      </div>
+      
+      <p id="auth-welcome-message" class="login-tagline">
+        Gestiona tu dinero con sabor local de Tuxtla.
+      </p>
+
+      <!-- Toggle Slider entre Login y Registro -->
+      <div style="display: flex; justify-content: center; margin-bottom: 0.5rem;">
+        <div class="toggle-pill-container" style="max-width: 100%;">
+          <div id="btn-toggle-login" class="toggle-pill-btn active">Entrar</div>
+          <div id="btn-toggle-register" class="toggle-pill-btn">Registrarse</div>
+          <div id="auth-slider" class="toggle-pill-slider" style="width: calc(50% - 0.25rem);"></div>
+        </div>
+      </div>
+
+      <div class="form-container">
+        
+        <!-- FORMULARIO 1: INICIAR SESIÓN -->
+        <form id="login-form-submit" class="login-form">
+          <div class="form-group input-group">
+            <label class="input-label" for="login-email">Correo Electrónico</label>
+            <input type="email" id="login-email" class="input-field" placeholder="ejemplo@finsense.mx" required>
+          </div>
+          
+          <div class="form-group input-group">
+            <label class="input-label" for="login-password">Contraseña</label>
+            <input type="password" id="login-password" class="input-field" placeholder="••••••••" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-shimmer" style="width: 100%; margin-top: 0.5rem;">
+            🚪 Iniciar Sesión
+          </button>
+
+          <p class="login-tagline" style="margin-top: 0.5rem;">
+            ¿No tienes cuenta? <span id="link-to-register" class="accent-link">Regístrate gratis</span>
+          </p>
+        </form>
+
+        <!-- FORMULARIO 2: REGISTRARSE -->
+        <form id="register-form-submit" class="login-form hidden">
+          <div class="form-group input-group">
+            <label class="input-label" for="register-username">Nombre completo / Apodo</label>
+            <input type="text" id="register-username" class="input-field" placeholder="Kaled o Sofía" required>
+          </div>
+
+          <div class="form-group input-group">
+            <label class="input-label" for="register-email">Correo Electrónico</label>
+            <input type="email" id="register-email" class="input-field" placeholder="ejemplo@finsense.mx" required>
+          </div>
+
+          <div class="form-group input-group">
+            <label class="input-label" for="register-password">Contraseña</label>
+            <input type="password" id="register-password" class="input-field" placeholder="Crear contraseña" required>
+          </div>
+
+          <div class="form-group input-group">
+            <label class="input-label" for="register-city">Ciudad de Residencia</label>
+            <select id="register-city" class="input-field" style="appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%2364748B%27 d=%27M6 8.8L1.6 4.4l1.2-1.2L6 6.4l3.2-3.2 1.2 1.2z%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1.2rem center; background-size: 10px;">
+              <option value="Tuxtla Gutiérrez" selected>Tuxtla Gutiérrez, Chiapas</option>
+              <option value="San Cristóbal de las Casas">San Cristóbal de las Casas, Chiapas</option>
+              <option value="Tapachula">Tapachula, Chiapas</option>
+              <option value="Comitán">Comitán, Chiapas</option>
+              <option value="Chiapa de Corzo">Chiapa de Corzo, Chiapas</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-accent btn-shimmer" style="width: 100%; margin-top: 0.5rem;">
+            ✨ Registrar mi Cuenta
+          </button>
+
+          <p class="login-tagline" style="margin-top: 0.5rem;">
+            ¿Ya tienes cuenta? <span id="link-to-login" class="accent-link">Inicia sesión</span>
+          </p>
+        </form>
+
+      </div>
+
+      <div style="font-size: 0.7rem; color: var(--color-text-muted); text-align: center; margin-top: 1rem; border-top: 1px dashed rgba(15,23,42,0.08); padding-top: 1rem;">
+        Pruébalo con la cuenta semilla:<br><strong>kaled@finsense.mx</strong> y clave <strong>123</strong>.
+      </div>
+      
+    </div>
+    
+  </main>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
