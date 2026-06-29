@@ -3,6 +3,13 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { 
+  Target, Flame, Star, Trophy, Wallet, BarChart3, Users, 
+  Utensils, Bus, BookOpen, Gamepad2, Zap, Activity, Shirt, 
+  Landmark, Package, Home, Pizza, Car, Laptop, Film, 
+  GraduationCap, Ticket, ShoppingBag, HelpCircle 
+} from 'lucide-react';
+
 
 // ─── Tailwind class merging ───
 export function cn(...inputs: ClassValue[]) {
@@ -173,3 +180,37 @@ export function getLevelProgress(xp: number): {
     percentage: getPercentage(xpInLevel, xpForNextLevel),
   };
 }
+
+// ─── Emoji to Lucide Icon Mapper ───
+const EMOJI_ICON_MAP: Record<string, React.ComponentType<any>> = {
+  '🎯': Target,
+  '🔥': Flame,
+  '⭐': Star,
+  '🏆': Trophy,
+  '💰': Wallet,
+  '📊': BarChart3,
+  '🤝': Users,
+  '🍽️': Utensils,
+  '🚌': Bus,
+  '📚': BookOpen,
+  '🎮': Gamepad2,
+  '⚡': Zap,
+  '💊': Activity,
+  '👕': Shirt,
+  '🏦': Landmark,
+  '📦': Package,
+  '🏛️': Landmark,
+  '🏠': Home,
+  '🍕': Pizza,
+  '🚗': Car,
+  '💻': Laptop,
+  '🍿': Film,
+  '🎓': GraduationCap,
+  '🎟️': Ticket,
+  '🎒': ShoppingBag,
+};
+
+export function getIconForEmoji(emoji: string): React.ComponentType<any> {
+  return EMOJI_ICON_MAP[emoji] || HelpCircle;
+}
+

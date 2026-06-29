@@ -2,8 +2,9 @@
 // AchievementBadge — insignia con bounce + glow al desbloquear
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getIconForEmoji } from '@/lib/utils';
 import type { Achievement } from '@/types/goal.types';
+
 
 interface AchievementBadgeProps {
   achievement: Achievement;
@@ -14,10 +15,11 @@ interface AchievementBadgeProps {
 }
 
 const sizeMap = {
-  sm: { container: 'w-14 h-14', emoji: 'text-2xl', lock: 12 },
-  md: { container: 'w-20 h-20', emoji: 'text-4xl', lock: 16 },
-  lg: { container: 'w-24 h-24', emoji: 'text-5xl', lock: 20 },
+  sm: { container: 'w-14 h-14', iconSize: 22, lock: 12 },
+  md: { container: 'w-20 h-20', iconSize: 32, lock: 16 },
+  lg: { container: 'w-24 h-24', iconSize: 40, lock: 20 },
 };
+
 
 export function AchievementBadge({
   achievement,
@@ -65,9 +67,11 @@ export function AchievementBadge({
         role="img"
         aria-label={unlocked ? achievement.title : `${achievement.title} (bloqueado)`}
       >
-        <span className={sizes.emoji} role="img" aria-hidden="true">
-          {achievement.emoji}
-        </span>
+        {(() => {
+          const Icon = getIconForEmoji(achievement.emoji);
+          return <Icon size={sizes.iconSize} className={unlocked ? 'text-primary' : 'text-text-secondary'} aria-hidden="true" />;
+        })()}
+
 
         {!unlocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface-3/60 rounded-2xl">

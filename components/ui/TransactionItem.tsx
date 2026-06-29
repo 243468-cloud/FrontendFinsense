@@ -3,7 +3,8 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Trash2, Edit2 } from 'lucide-react';
-import { cn, formatCurrency, formatRelativeDate } from '@/lib/utils';
+import { cn, formatCurrency, formatRelativeDate, getIconForEmoji } from '@/lib/utils';
+
 import { CATEGORIES } from '@/lib/constants';
 import type { Transaction } from '@/types/transaction.types';
 
@@ -90,12 +91,16 @@ export function TransactionItem({
       >
         {/* Category icon */}
         <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: cat?.bgColor ?? '#F5F5F5' }}
           aria-hidden="true"
         >
-          {cat?.emoji ?? '📦'}
+          {(() => {
+            const Icon = getIconForEmoji(cat?.emoji ?? '📦');
+            return <Icon size={20} style={{ color: cat?.color ?? '#6B7280' }} />;
+          })()}
         </div>
+
 
         {/* Details */}
         <div className="flex-1 min-w-0">

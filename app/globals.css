@@ -37,6 +37,17 @@
   --header-height: 64px;
 }
 
+.dark {
+  --color-surface: #0E1428;
+  --color-surface-2: #161D3A;
+  --color-surface-3: #1F2850;
+  --color-text-primary: #F0F4FF;
+  --color-text-secondary: #8B9BB4;
+  --color-border: rgba(0, 87, 255, 0.25);
+  background-color: #0E1428;
+}
+
+
 /* ─── Base Reset ─── */
 *,
 *::before,
@@ -81,6 +92,14 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* ─── Responsive Typography ─── */
+@media (max-width: 639px) {
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  .display { font-size: 2.5rem; }
 }
 
 /* ─── Scrollbar Styling ─── */

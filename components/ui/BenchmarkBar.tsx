@@ -2,7 +2,7 @@
 // BenchmarkBar — barra comparativa entre usuario y promedio local
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getIconForEmoji } from '@/lib/utils';
 
 interface BenchmarkBarProps {
   userValue: number;
@@ -29,11 +29,13 @@ export function BenchmarkBar({
   const percentDiff = avgValue > 0 ? Math.round((diff / avgValue) * 100) : 0;
   const isOver = diff > 0;
 
+  const Icon = emoji ? getIconForEmoji(emoji) : null;
+
   return (
     <div ref={ref} className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {emoji && <span className="text-base" role="img" aria-hidden="true">{emoji}</span>}
+          {Icon && <Icon size={16} className="text-primary flex-shrink-0" aria-hidden="true" />}
           <span className="font-dm font-medium text-text-primary text-sm">{label}</span>
         </div>
         <span

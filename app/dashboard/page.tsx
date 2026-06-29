@@ -2,11 +2,13 @@
 // Dashboard Principal
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Plus, Target, Users, BarChart3,
-  Bell, Settings, ArrowRight,
+  Bell, Settings, ArrowRight, Flame, Check, Search, Receipt
 } from 'lucide-react';
+
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
 } from 'recharts';
@@ -16,11 +18,14 @@ import { TransactionItem } from '@/components/ui/TransactionItem';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SkeletonCard, SkeletonTransactionItem } from '@/components/ui/SkeletonCard';
 import { BenchmarkBar } from '@/components/ui/BenchmarkBar';
+import { AchievementBadge } from '@/components/ui/AchievementBadge';
+import { MOCK_ACHIEVEMENTS } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
 import { getTransactions, deleteTransaction } from '@/services/transactionService';
 import { getSummary } from '@/services/analyticsService';
 import { getGoals } from '@/services/goalService';
-import { getGreeting, getInitials, formatCurrency } from '@/lib/utils';
+import { getNotifications } from '@/services/notificationService';
+import { cn, getGreeting, getInitials, formatCurrency, getIconForEmoji } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
 import type { Transaction } from '@/types/transaction.types';
 import type { Summary } from '@/types/analytics.types';
@@ -36,20 +41,23 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [txs, sum, gls] = await Promise.all([
+        const [txs, sum, gls, notifs] = await Promise.all([
           getTransactions({ limit: 5 }),
           getSummary('month'),
           getGoals(),
+          getNotifications(),
         ]);
         setTransactions(txs);
         setSummary(sum);
         setGoals(gls.filter((g) => g.status === 'active').slice(0, 2));
+        setUnreadNotifications(notifs.filter((n) => !n.read).length);
       } catch {
         addToast({ message: 'Error al cargar datos', type: 'error' });
       } finally {
@@ -79,45 +87,71 @@ export default function DashboardPage() {
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <p className="font-dm text-xs text-text-secondary">{greeting}</p>
-            <h1 className="font-syne font-bold text-lg text-text-primary">
+          <Link href="/profile" className="flex flex-col text-left group hover:opacity-90 transition-opacity cursor-pointer">
+            <p className="font-dm text-xs text-text-secondary group-hover:text-primary transition-colors">{greeting}</p>
+            <h1 className="font-syne font-bold text-lg text-text-primary group-hover:text-primary transition-colors">
               {firstName} 👋
             </h1>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-2">
+            {/* Level Pill */}
+            {user && (
+              <button
+                onClick={() => router.push('/goals')}
+                className="flex items-center gap-1 bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors px-2.5 py-1 rounded-full text-primary"
+                aria-label={`Nivel ${user.level}`}
+              >
+                <span className="text-[10px] font-dm font-bold">LVL</span>
+                <span className="font-mono text-xs font-bold">{user.level}</span>
+              </button>
+            )}
+
+            {/* Streak Pill */}
+            {user && (
+              <div
+                className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full text-orange-500 animate-pulse"
+                aria-label={`Racha de ${user.streakDays} días`}
+              >
+                <Flame size={13} fill="currentColor" className="text-orange-500" />
+                <span className="font-mono text-xs font-bold">{user.streakDays}d</span>
+              </div>
+            )}
+
             <button
+              onClick={() => addToast({ message: 'Búsqueda no implementada aún', type: 'info' })}
+              className="touch-target rounded-xl hover:bg-surface-2 transition-colors p-2 text-text-secondary"
+              aria-label="Buscar"
+            >
+              <Search size={22} />
+            </button>
+
+            <button
+              onClick={() => router.push('/notifications')}
               className="touch-target rounded-xl hover:bg-surface-2 transition-colors relative"
               aria-label="Notificaciones"
             >
               <Bell size={22} className="text-text-secondary" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" aria-hidden="true" />
-            </button>
-
-            <button
-              onClick={() => router.push('/profile')}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-sm touch-target"
-              aria-label="Ver perfil"
-            >
-              {getInitials(user?.name ?? 'U')}
+              {unreadNotifications > 0 && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full" aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto md:max-w-4xl">
-        {/* ─── Balance Card ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative overflow-hidden rounded-3xl p-6 text-white"
-          style={{
-            background: 'linear-gradient(135deg, #0057FF 0%, #003DB5 50%, #00C2FF 100%)',
-            boxShadow: '0 12px 40px rgba(0, 87, 255, 0.30)',
-          }}
-        >
+<div className="p-4 space-y-4 max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto md:px-6 md:py-6">
+         {/* ─── Balance Card ─── */}
+         <motion.div
+           variants={itemVariants}
+           initial="hidden"
+           animate="visible"
+           className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white"
+           style={{
+             background: 'linear-gradient(135deg, #0A1128 0%, #0057FF 100%)',
+             boxShadow: '0 8px 30px rgba(0, 87, 255, 0.15)',
+           }}
+         >
           {/* Decorative shapes */}
           <div
             className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20"
@@ -187,9 +221,9 @@ export default function DashboardPage() {
             {/* Savings rate */}
             {!isLoading && summary && (
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-white/70 mb-1.5">
+                <div className="flex justify-between text-xs text-white font-medium mb-1.5">
                   <span className="font-dm">Tasa de ahorro</span>
-                  <span className="font-mono font-semibold text-white">{summary.savingsRate.toFixed(1)}%</span>
+                  <span className="font-mono font-bold text-yellow-300">{summary.savingsRate.toFixed(1)}%</span>
                 </div>
                 <ProgressBar
                   value={summary.savingsRate}
@@ -203,17 +237,82 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
+        {/* ─── Racha de Registro Diario (Gamificada) ─── */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-surface border border-border text-text-primary shadow-card hover:shadow-card-hover transition-all duration-200"
+          whileHover={{ y: -1 }}
+        >
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500">
+                <Flame size={24} fill="currentColor" className="text-orange-500 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary">Racha de Registro Diario</h3>
+                <p className="font-dm text-xs text-text-secondary mt-0.5">
+                  Llevas <span className="font-bold text-orange-500 font-mono text-sm">{user?.streakDays ?? 7} días</span> seguidos. ¡Sigue quemando!
+                </p>
+              </div>
+            </div>
+            <span className="font-mono text-[10px] font-bold text-orange-500 bg-orange-50 border border-orange-200/60 px-2.5 py-1 rounded-full uppercase tracking-wide">
+              Racha Activa
+            </span>
+          </div>
+
+          {/* Week Progress Circles */}
+          <div className="grid grid-cols-7 gap-2 relative z-10 pt-3 border-t border-border">
+            {[
+              { label: 'L', active: true,  current: false },
+              { label: 'M', active: true,  current: false },
+              { label: 'M', active: true,  current: false },
+              { label: 'J', active: true,  current: false },
+              { label: 'V', active: true,  current: false },
+              { label: 'S', active: true,  current: true  }, // Current day
+              { label: 'D', active: false, current: false },
+            ].map((day, idx) => (
+              <div key={idx} className="flex flex-col items-center gap-1.5">
+                <motion.div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all relative',
+                    day.current 
+                      ? 'bg-orange-50 text-orange-500 border-2 border-orange-500 shadow-orange-sm' 
+                      : day.active
+                        ? 'bg-orange-500 text-white border border-orange-500 shadow-blue-sm'
+                        : 'bg-surface-2 text-text-secondary/60 border border-border'
+                  )}
+                  animate={day.current ? { scale: [1, 1.05, 1] } : {}}
+                  transition={day.current ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : {}}
+                >
+                  {day.active ? (
+                    day.current ? (
+                      <Flame size={14} fill="currentColor" />
+                    ) : (
+                      <Check size={14} strokeWidth={3} className="text-white" />
+                    )
+                  ) : (
+                    day.label
+                  )}
+                </motion.div>
+                <span className="text-[10px] font-dm font-semibold text-text-secondary">{day.label}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+
         {/* ─── Quick Actions ─── */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-4 gap-3"
+          className="grid grid-cols-4 gap-4 sm:gap-6"
           aria-label="Acciones rápidas"
         >
-          {[
-            { icon: Plus,     label: 'Gasto',    href: '/transactions/new', color: '#FF6B6B', bg: '#FFF0F0' },
-            { icon: TrendingUp,label: 'Ingreso',  href: '/transactions/new', color: '#00C896', bg: '#F0FFF9' },
+          {[{ icon: Receipt,   label: 'Gasto',    href: '/transactions/new?type=expense', color: '#FF6B6B', bg: '#FFF0F0' },
+            { icon: TrendingUp,label: 'Ingreso',  href: '/transactions/new?type=income', color: '#00C896', bg: '#F0FFF9' },
             { icon: Target,   label: 'Metas',    href: '/goals',            color: '#0057FF', bg: '#F0F5FF' },
             { icon: Users,    label: 'Grupos',   href: '/groups',           color: '#A855F7', bg: '#FAF0FF' },
           ].map((action) => {
@@ -222,20 +321,20 @@ export default function DashboardPage() {
               <motion.button
                 key={action.label}
                 variants={itemVariants}
-                className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-surface border border-border transition-all duration-150 hover:shadow-card"
+                className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-surface border border-border transition-all duration-150 hover:shadow-card-hover"
                 onClick={() => router.push(action.href)}
                 aria-label={action.label}
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ y: -2 }}
               >
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center"
                   style={{ backgroundColor: action.bg }}
                   aria-hidden="true"
                 >
-                  <Icon size={22} style={{ color: action.color }} />
+                  <Icon size={20} className="sm:size-26" style={{ color: action.color }} />
                 </div>
-                <span className="font-dm text-xs font-medium text-text-secondary">
+                <span className="font-dm text-xs sm:text-sm font-semibold text-text-secondary leading-tight text-center">
                   {action.label}
                 </span>
               </motion.button>
@@ -244,30 +343,30 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* ─── Spending Donut Chart + Benchmarks ─── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Donut chart */}
           <motion.div
             variants={itemVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+            className="bg-surface rounded-2xl p-5 sm:p-6 border border-border shadow-card"
           >
-            <h2 className="font-syne font-bold text-base text-text-primary mb-3">
+            <h2 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-2 sm:mb-3">
               Gastos del mes
             </h2>
             {isLoading ? (
-              <div className="h-48 shimmer-bg rounded-xl" />
+              <div className="h-40 sm:h-48 shimmer-bg rounded-xl" />
             ) : (
-              <div className="h-48">
+              <div className="h-40 sm:h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={pieData}
-                      cx="50%"
+                      cx="35%"
                       cy="50%"
-                      innerRadius={55}
-                      outerRadius={80}
+                      innerRadius="45%"
+                      outerRadius="75%"
                       paddingAngle={3}
                       dataKey="value"
                     >
@@ -289,9 +388,12 @@ export default function DashboardPage() {
                       }}
                     />
                     <Legend
+                      layout="vertical"
+                      align="right"
+                      verticalAlign="middle"
                       iconType="circle"
                       iconSize={8}
-                      wrapperStyle={{ fontSize: 11, fontFamily: 'DM Sans, sans-serif' }}
+                      wrapperStyle={{ fontSize: 12, fontFamily: 'DM Sans, sans-serif', paddingLeft: 10 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -299,21 +401,28 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* Benchmarks locales */}
           <motion.div
             variants={itemVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+            className="bg-surface rounded-2xl p-5 sm:p-6 border border-border shadow-card"
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-syne font-bold text-base text-text-primary">
                 Benchmarks Locales
               </h2>
-              <span className="text-xs font-dm text-text-secondary bg-surface-2 px-2 py-1 rounded-lg border border-border">
-                vs. Tuxtla
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-dm text-text-secondary">vs.</span>
+                <select
+                  className="text-xs font-dm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  aria-label="Seleccionar ciudad de comparación"
+                  defaultValue="Tuxtla"
+                >
+                  <option value="Tuxtla">Tuxtla</option>
+                  <option value="Suchiapa">Suchiapa</option>
+                </select>
+              </div>
             </div>
             {isLoading ? (
               <div className="space-y-4">
@@ -362,15 +471,17 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {goals.map((goal) => {
                 const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+                const GoalIcon = getIconForEmoji(goal.emoji);
                 return (
                   <div key={goal.id} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl" role="img" aria-hidden="true">{goal.emoji}</span>
+                        <GoalIcon size={18} className="text-primary flex-shrink-0" />
                         <p className="font-dm font-semibold text-sm text-text-primary">
                           {goal.title}
                         </p>
                       </div>
+
                       <p className="font-mono text-xs text-text-secondary">
                         {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
                       </p>
@@ -389,6 +500,40 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
+        {/* ─── Achievements Showcase ─── */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-syne font-bold text-base text-text-primary">
+              Logros e Insignias
+            </h2>
+            <button
+              onClick={() => router.push('/goals')}
+              className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
+              aria-label="Ver todas las insignias"
+            >
+              Ver todas <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="flex overflow-x-auto gap-4 scrollbar-none pb-2 pt-1 px-1">
+            {MOCK_ACHIEVEMENTS.map((achievement) => (
+              <div key={achievement.id} className="flex-shrink-0 w-20">
+                <AchievementBadge
+                  achievement={achievement}
+                  unlocked={!!achievement.unlockedAt}
+                  size="sm"
+                />
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* ─── Recent Transactions ─── */}
         <motion.div
           variants={itemVariants}
@@ -402,11 +547,11 @@ export default function DashboardPage() {
               Últimos movimientos
             </h2>
             <button
-              onClick={() => router.push('/analytics')}
+              onClick={() => router.push('/transactions')}
               className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
-              aria-label="Ver analytics"
+              aria-label="Ver todas las transacciones"
             >
-              Analytics <BarChart3 size={14} aria-hidden="true" />
+              Ver todo <ArrowRight size={14} aria-hidden="true" />
             </button>
           </div>
 

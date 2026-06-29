@@ -17,7 +17,7 @@ import {
   MOCK_ACHIEVEMENTS,
   MOCK_WEEKLY_CHALLENGE,
 } from '@/lib/mockData';
-import { formatCurrency, getCountdown, getLevelProgress } from '@/lib/utils';
+import { formatCurrency, getCountdown, getLevelProgress, getIconForEmoji } from '@/lib/utils';
 import type { Goal } from '@/types/goal.types';
 
 // Confetti component
@@ -118,7 +118,7 @@ export default function GoalsPage() {
           <p className="font-dm text-xs text-text-secondary">Progreso gamificado</p>
         </div>
         <button
-          onClick={() => router.push('/transactions/new')}
+          onClick={() => router.push('/goals/new')}
           className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl font-dm font-semibold text-sm hover:bg-primary-dark transition-colors"
           aria-label="Nueva meta"
         >
@@ -127,23 +127,23 @@ export default function GoalsPage() {
         </button>
       </header>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto md:px-6 md:py-6">
         {/* ─── Streak + XP ─── */}
         <motion.div
           variants={itemVariants}
           initial="hidden"
           animate="visible"
-          className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+          className="bg-surface rounded-2xl p-3 sm:p-4 border border-border shadow-card"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
               <p className="font-dm text-xs text-text-secondary mb-1">Racha actual</p>
-              <StreakCounter days={user?.streakDays ?? 7} size="md" />
+              <StreakCounter days={user?.streakDays ?? 7} size="sm" />
             </div>
             <div className="text-right">
               <p className="font-dm text-xs text-text-secondary mb-1">Mejor racha</p>
-              <p className="font-syne font-bold text-2xl text-text-primary">
-                {user?.maxStreak ?? 14} <span className="text-sm text-text-secondary font-dm">días</span>
+              <p className="font-syne font-bold text-xl sm:text-2xl text-text-primary">
+                {user?.maxStreak ?? 14} <span className="text-xs sm:text-sm text-text-secondary font-dm">días</span>
               </p>
             </div>
           </div>
@@ -151,22 +151,22 @@ export default function GoalsPage() {
           {/* XP Level bar */}
           {level && (
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <div
-                    className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-xs"
                     aria-label={`Nivel ${level.level}`}
                   >
                     {level.level}
                   </div>
                   <div>
-                    <p className="font-dm font-semibold text-sm text-text-primary">Nivel {level.level}</p>
+                    <p className="font-dm font-semibold text-xs sm:text-sm text-text-primary">Nivel {level.level}</p>
                     <p className="font-dm text-xs text-text-secondary">
                       {level.xpInLevel} / {level.xpForNextLevel} XP
                     </p>
                   </div>
                 </div>
-                <Trophy size={20} className="text-warning" aria-hidden="true" />
+                <Trophy size={16} className="sm:size-20 text-warning" aria-hidden="true" />
               </div>
               <ProgressBar
                 value={level.xpInLevel}
@@ -175,7 +175,7 @@ export default function GoalsPage() {
                 trackColor="#E8EEFF"
                 showLabel
                 label="Progreso al siguiente nivel"
-                height="md"
+                height="sm"
               />
             </div>
           )}
@@ -204,9 +204,14 @@ export default function GoalsPage() {
                 <span className="text-white/70 font-dm text-xs uppercase tracking-wide">
                   Reto de la semana
                 </span>
-                <h2 className="font-syne font-bold text-lg text-white mt-0.5">
-                  {challenge.emoji} {challenge.title}
+                <h2 className="font-syne font-bold text-lg text-white mt-0.5 flex items-center gap-2">
+                  {(() => {
+                    const ChallengeIcon = getIconForEmoji(challenge.emoji);
+                    return <ChallengeIcon size={20} className="text-white animate-pulse" />;
+                  })()}
+                  <span>{challenge.title}</span>
                 </h2>
+
                 <p className="font-dm text-white/80 text-sm mt-1">
                   {challenge.description}
                 </p>
@@ -266,12 +271,17 @@ export default function GoalsPage() {
                         className="bg-surface rounded-2xl p-4 border border-border shadow-card"
                       >
                         <div className="flex items-center gap-3 mb-3">
-                          <div
-                            className="w-12 h-12 rounded-2xl bg-surface-2 flex items-center justify-center text-2xl"
-                            aria-hidden="true"
-                          >
-                            {goal.emoji}
-                          </div>
+                          {(() => {
+                            const GoalIcon = getIconForEmoji(goal.emoji);
+                            return (
+                              <div
+                                className="w-12 h-12 rounded-2xl bg-surface-2 flex items-center justify-center flex-shrink-0"
+                                aria-hidden="true"
+                              >
+                                <GoalIcon size={22} className="text-primary" />
+                              </div>
+                            );
+                          })()}
                           <div className="flex-1 min-w-0">
                             <p className="font-syne font-bold text-sm text-text-primary">
                               {goal.title}

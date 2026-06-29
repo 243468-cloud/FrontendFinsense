@@ -8,9 +8,10 @@ import { PageTransition, containerVariants, itemVariants } from '@/components/la
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { Button } from '@/components/ui/Button';
 import { getGroups, calculateDebts } from '@/services/groupService';
-import { formatCurrency, formatRelativeDate, getInitials } from '@/lib/utils';
+import { formatCurrency, formatRelativeDate, getInitials, getIconForEmoji } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
 import type { Group } from '@/types/group.types';
+
 
 // Stacked avatars component
 function StackedAvatars({ members, max = 3 }: { members: Group['members']; max?: number }) {
@@ -58,13 +59,19 @@ function GroupCard({ group, onClick }: { group: Group; onClick: () => void }) {
       aria-label={`Grupo ${group.name}`}
     >
       <div className="flex items-start gap-3">
-        {/* Group emoji */}
-        <div
-          className="w-12 h-12 rounded-2xl bg-surface-2 flex items-center justify-center text-2xl flex-shrink-0"
-          aria-hidden="true"
-        >
-          {group.emoji}
-        </div>
+        {/* Group icon */}
+        {(() => {
+          const GroupIcon = getIconForEmoji(group.emoji);
+          return (
+            <div
+              className="w-12 h-12 rounded-2xl bg-surface-2 flex items-center justify-center flex-shrink-0 text-primary"
+              aria-hidden="true"
+            >
+              <GroupIcon size={22} className="text-primary" />
+            </div>
+          );
+        })()}
+
 
         {/* Details */}
         <div className="flex-1 min-w-0">
@@ -178,7 +185,8 @@ export default function GroupsPage() {
           <p className="font-dm text-xs text-text-secondary">Gastos colaborativos</p>
         </div>
         <button
-          className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl font-dm font-semibold text-sm"
+          onClick={() => router.push('/groups/new')}
+          className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl font-dm font-semibold text-sm hover:bg-primary-dark transition-colors"
           aria-label="Crear nuevo grupo"
         >
           <Plus size={16} aria-hidden="true" />
@@ -186,37 +194,43 @@ export default function GroupsPage() {
         </button>
       </header>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto md:px-6 md:py-6">
         {/* Debt overview */}
         {!isLoading && <DebtOverview groups={groups} />}
 
         {/* Groups list */}
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[1, 2].map((i) => <SkeletonCard key={i} lines={4} showAvatar />)}
           </div>
         ) : groups.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-12 sm:py-16">
             <div
-              className="w-20 h-20 rounded-3xl bg-surface-2 flex items-center justify-center text-4xl mx-auto mb-4"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-surface-2 flex items-center justify-center text-primary mx-auto mb-3 sm:mb-4"
               aria-hidden="true"
             >
-              🤝
+              <Users size={32} className="text-primary" />
             </div>
-            <h2 className="font-syne font-bold text-lg text-text-primary mb-2">
+
+            <h2 className="font-syne font-bold text-lg sm:text-xl text-text-primary mb-2">
               Sin grupos aún
             </h2>
-            <p className="font-dm text-sm text-text-secondary mb-6 max-w-xs mx-auto">
+            <p className="font-dm text-sm text-text-secondary mb-5 sm:mb-6 max-w-xs mx-auto">
               Crea un grupo para dividir gastos con amigos, roomies o en viajes.
             </p>
-            <Button icon={<Plus size={18} />}>Crear primer grupo</Button>
+            <Button
+              onClick={() => router.push('/groups/new')}
+              icon={<Plus size={16} aria-hidden="true" />}
+            >
+              Crear primer grupo
+            </Button>
           </div>
         ) : (
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="space-y-3"
+            className="space-y-2 sm:space-y-3"
           >
             {groups.map((group) => (
               <GroupCard
