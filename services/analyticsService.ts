@@ -1,10 +1,10 @@
-// FinSense — Analytics Service (SOA)
+﻿// FinSense â€” Analytics Service (SOA)
 import apiClient from '@/lib/apiClient';
 import type { Summary, BenchmarkReport } from '@/types/analytics.types';
 import type { Period } from '@/types/analytics.types';
 import { MOCK_SUMMARY, MOCK_BENCHMARKS } from '@/lib/mockData';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 export async function getSummary(period: Period): Promise<Summary> {
   if (USE_MOCK) {

@@ -8,8 +8,38 @@ import type {
 } from '@/types/transaction.types';
 import { MOCK_TRANSACTIONS } from '@/lib/mockData';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 let mockData = [...MOCK_TRANSACTIONS];
+
+const BACKEND_TO_FRONTEND_CATEGORIES: Record<string, string> = {
+  'alimentacion': 'food',
+  'comida': 'food',
+  'transporte': 'transport',
+  'educacion': 'university',
+  'universidad': 'university',
+  'entretenimiento': 'entertainment',
+  'servicios': 'services',
+  'salud': 'health',
+  'ropa': 'clothing',
+  'ahorro': 'savings',
+};
+
+// Normalize backend shape → frontend Transaction type
+function mapTx(raw: any): Transaction {
+  const rawCatName = raw.category?.name?.toLowerCase() ?? '';
+  const mappedId = BACKEND_TO_FRONTEND_CATEGORIES[rawCatName] ?? raw.categoryId ?? 'other';
+  return {
+    id: raw.id,
+    userId: raw.userId ?? raw.user_id,
+    type: raw.type,
+    amount: Number(raw.amount),
+    categoryId: mappedId,
+    note: raw.description ?? raw.note ?? '',
+    date: raw.date ?? raw.createdAt,
+    createdAt: raw.createdAt ?? raw.date,
+    groupId: raw.groupId,
+  } as Transaction;
+}
 
 export async function getTransactions(
   filters?: TransactionFilters
@@ -23,10 +53,10 @@ export async function getTransactions(
     return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  const { data } = await apiClient.get<Transaction[]>('/transactions', {
+  const { data } = await apiClient.get<{ data: any[]; total: number }>('/transactions', {
     params: filters,
   });
-  return data;
+  return (data.data ?? []).map(mapTx);
 }
 
 export async function createTransaction(
@@ -44,8 +74,20 @@ export async function createTransaction(
     return newTransaction;
   }
 
-  const { data } = await apiClient.post<Transaction>('/transactions', dto);
-  return data;
+  // Map frontend categoryId slug → Spanish name for backend auto-resolution
+  const CATEGORY_NAMES: Record<string, string> = {
+    food: 'Alimentacion', transport: 'Transporte', university: 'Educacion',
+    entertainment: 'Entretenimiento', services: 'Servicios', health: 'Salud',
+    clothing: 'Ropa', savings: 'Ahorro', other: 'Otro',
+  };
+  const payload = {
+    ...dto,
+    categoryId: undefined,
+    categoryName: CATEGORY_NAMES[dto.categoryId] ?? dto.categoryId,
+    description: dto.note,
+  };
+  const { data } = await apiClient.post<any>('/transactions', payload);
+  return mapTx(data);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

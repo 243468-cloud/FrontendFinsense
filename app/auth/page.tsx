@@ -179,8 +179,8 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Illustration (desktop) */}
-      <div className="flex-1">
+      {/* Illustration (desktop only) */}
+      <div className="hidden lg:flex lg:flex-1">
         <IllustrationPanel />
       </div>
 

@@ -31,4 +31,5 @@ export interface User {
   monthsActive: number;
   goalsCompleted: number;
   createdAt: string;
+  badges?: string;
 }

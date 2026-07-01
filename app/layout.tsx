@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastContainer } from '@/components/ui/Toast';
+import { FinancialAdvisorBot } from '@/components/ui/FinancialAdvisorBot';
 
 const syne = Syne({
   subsets: ['latin'],
@@ -62,7 +63,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-};
+ };
 
 export default function RootLayout({
   children,
@@ -81,6 +82,7 @@ export default function RootLayout({
       <body className="font-dm bg-surface text-text-primary antialiased">
         {children}
         <ToastContainer />
+        <FinancialAdvisorBot />
       </body>
     </html>
   );

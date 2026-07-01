@@ -20,7 +20,7 @@ export interface CreateGoalDTO {
   title: string;
   description?: string;
   targetAmount: number;
-  deadline: string;
+  deadline?: string;
   categoryId: string;
   emoji: string;
 }

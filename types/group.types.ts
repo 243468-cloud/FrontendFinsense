@@ -31,6 +31,7 @@ export interface GroupExpense {
   title: string;
   amount: number;
   paidBy: string;
+  paidByName?: string;
   splitBetween: string[];
   splitType: 'equal' | 'custom';
   customSplits?: Record<string, number>;
@@ -43,13 +44,13 @@ export interface GroupExpense {
 export interface GroupExpenseDTO {
   title: string;
   amount: number;
-  paidBy: string;
+  paidBy?: string;
   splitBetween: string[];
-  splitType: 'equal' | 'custom';
+  splitType?: 'equal' | 'custom';
   customSplits?: Record<string, number>;
-  categoryId: string;
+  categoryId?: string;
   note?: string;
-  date: string;
+  date?: string;
 }
 
 export interface DebtSummary {

@@ -1,11 +1,11 @@
 'use client';
-// Dashboard Principal
+// Dashboard Principal con Panel de Notificaciones Conectado al Backend
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Plus, Target, Users, BarChart3,
-  Bell, Settings, ArrowRight,
+  Bell, Settings, ArrowRight, X, Lightbulb,
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -16,14 +16,16 @@ import { TransactionItem } from '@/components/ui/TransactionItem';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SkeletonCard, SkeletonTransactionItem } from '@/components/ui/SkeletonCard';
 import { BenchmarkBar } from '@/components/ui/BenchmarkBar';
+import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { getTransactions, deleteTransaction } from '@/services/transactionService';
-import { getSummary } from '@/services/analyticsService';
+import { getSummary, getBenchmarks } from '@/services/analyticsService';
 import { getGoals } from '@/services/goalService';
-import { getGreeting, getInitials, formatCurrency } from '@/lib/utils';
+import { getNotifications, markAsRead, markAllAsRead, type Notification } from '@/services/notificationService';
+import { getGreeting, getInitials, formatCurrency, formatRelativeDate } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
 import type { Transaction } from '@/types/transaction.types';
-import type { Summary } from '@/types/analytics.types';
+import type { Summary, BenchmarkReport } from '@/types/analytics.types';
 import type { Goal } from '@/types/goal.types';
 
 const PIE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFB800', '#A855F7', '#45B7D1'];
@@ -35,21 +37,28 @@ export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [benchmarks, setBenchmarks] = useState<BenchmarkReport | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [txs, sum, gls] = await Promise.all([
+        const [txs, sum, gls, notifs, bench] = await Promise.all([
           getTransactions({ limit: 5 }),
           getSummary('month'),
           getGoals(),
+          getNotifications(),
+          getBenchmarks('Tuxtla Gutiérrez'),
         ]);
         setTransactions(txs);
         setSummary(sum);
         setGoals(gls.filter((g) => g.status === 'active').slice(0, 2));
+        setNotifications(notifs);
+        setBenchmarks(bench);
       } catch {
         addToast({ message: 'Error al cargar datos', type: 'error' });
       } finally {
@@ -59,13 +68,54 @@ export default function DashboardPage() {
     loadData();
   }, [addToast]);
 
+  // Polling for real-time notifications checking
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const notifs = await getNotifications();
+        const currentUnreadIds = notifications.filter(n => !n.read).map(n => n.id);
+        const newUnread = notifs.filter(n => !n.read && !currentUnreadIds.includes(n.id));
+        if (newUnread.length > 0) {
+          setNotifications(notifs);
+          newUnread.forEach(n => {
+            addToast({ message: `🔔 ${n.title}: ${n.body}`, type: 'success' });
+          });
+        }
+      } catch {}
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [notifications, addToast]);
+
   async function handleDeleteTransaction(id: string) {
     await deleteTransaction(id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     addToast({ message: 'Transacción eliminada', type: 'success' });
   }
 
-  const pieData = summary?.topCategories.slice(0, 5).map((cat) => ({
+  async function handleMarkRead(id: string) {
+    try {
+      await markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch {
+      addToast({ message: 'Error al marcar como leída', type: 'error' });
+    }
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      await markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      addToast({ message: 'Todas las notificaciones leídas', type: 'success' });
+    } catch {
+      addToast({ message: 'Error al marcar todas como leídas', type: 'error' });
+    }
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const pieData = (summary?.topCategories ?? []).slice(0, 5).map((cat) => ({
     name: cat.label,
     value: cat.amount,
     emoji: cat.emoji,
@@ -75,7 +125,7 @@ export default function DashboardPage() {
   const firstName = user?.name.split(' ')[0] ?? 'Usuario';
 
   return (
-    <PageTransition className="min-h-screen bg-surface-2">
+    <PageTransition className="min-h-screen bg-surface-2 pb-24">
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
@@ -88,11 +138,16 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2">
             <button
-              className="touch-target rounded-xl hover:bg-surface-2 transition-colors relative"
+              onClick={() => setShowNotifications(true)}
+              className="touch-target rounded-xl hover:bg-surface-2 transition-colors relative w-10 h-10 flex items-center justify-center"
               aria-label="Notificaciones"
             >
               <Bell size={22} className="text-text-secondary" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 bg-red-500 rounded-full text-[9px] text-white font-mono font-bold flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -323,15 +378,27 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {(summary?.topCategories ?? []).slice(0, 3).map((cat, i) => (
-                  <BenchmarkBar
-                    key={cat.categoryId}
-                    emoji={cat.emoji}
-                    label={cat.label}
-                    userValue={cat.amount}
-                    avgValue={cat.amount / (1 + cat.trend / 100)}
-                  />
-                ))}
+                {benchmarks && benchmarks.benchmarks.length > 0 ? (
+                  benchmarks.benchmarks.slice(0, 3).map((b) => (
+                    <BenchmarkBar
+                      key={b.categoryId}
+                      emoji={b.emoji}
+                      label={b.label}
+                      userValue={b.userAmount}
+                      avgValue={b.cityAverage}
+                    />
+                  ))
+                ) : (
+                  <p className="font-dm text-xs text-text-secondary">Sin datos de benchmark este mes.</p>
+                )}
+                {benchmarks?.suggestion && (
+                  <div className="mt-3 bg-blue-50/50 border border-blue-100/50 rounded-2xl p-3 flex gap-2">
+                    <Lightbulb size={16} className="text-primary shrink-0 mt-0.5" />
+                    <p className="font-dm text-xs text-text-secondary leading-normal">
+                      {benchmarks.suggestion}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -425,6 +492,88 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* ─── Panel de Notificaciones Deslizable ─── */}
+      <AnimatePresence>
+        {showNotifications && (
+          <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              className="bg-surface w-full max-w-sm h-full max-h-[85vh] rounded-3xl border border-border shadow-2xl flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2">
+                <div>
+                  <h3 className="font-syne font-bold text-sm text-text-primary">Notificaciones</h3>
+                  {unreadCount > 0 && (
+                    <p className="font-dm text-xs text-primary">{unreadCount} pendientes</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="w-8 h-8 rounded-lg hover:bg-surface-3 flex items-center justify-center text-text-secondary transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-border">
+                {notifications.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <p className="text-2xl mb-2">🔔</p>
+                    <p className="font-dm text-sm text-text-secondary">Sin notificaciones nuevas</p>
+                  </div>
+                ) : (
+                  notifications.map((notif) => {
+                    const typeEmojis = {
+                      budget_exceeded: '🚨',
+                      streak_at_risk: '🔥',
+                      goal_deadline: '🎯',
+                      reminder: '⏰',
+                      badge_earned: '🎉',
+                    };
+                    return (
+                      <button
+                        key={notif.id}
+                        onClick={() => !notif.read && handleMarkRead(notif.id)}
+                        className={`w-full p-4 hover:bg-surface-2 transition-colors text-left flex gap-3 items-start relative ${
+                          !notif.read ? 'bg-blue-50/20' : ''
+                        }`}
+                      >
+                        <span className="text-xl mt-0.5">{typeEmojis[notif.type] || '🔔'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-dm text-xs ${!notif.read ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
+                            {notif.title}
+                          </p>
+                          <p className="font-dm text-[11px] text-text-secondary mt-0.5 leading-snug">
+                            {notif.body}
+                          </p>
+                          <p className="font-dm text-[9px] text-text-secondary mt-1">
+                            {formatRelativeDate(notif.createdAt)}
+                          </p>
+                        </div>
+                        {!notif.read && (
+                          <span className="w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {unreadCount > 0 && (
+                <div className="p-4 border-t border-border bg-surface-2 flex gap-2">
+                  <Button fullWidth size="sm" variant="secondary" onClick={handleMarkAllRead}>
+                    Marcar todo leído
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

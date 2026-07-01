@@ -3,9 +3,29 @@ import apiClient from '@/lib/apiClient';
 import type { Group, CreateGroupDTO, GroupExpense, GroupExpenseDTO, DebtSummary } from '@/types/group.types';
 import { MOCK_GROUPS, MOCK_GROUP_EXPENSES } from '@/lib/mockData';
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 let mockGroups = [...MOCK_GROUPS];
 let mockExpenses = [...MOCK_GROUP_EXPENSES];
+
+// Normalize backend Group → frontend Group type
+function mapGroup(raw: any): Group {
+  const members = (raw.members ?? []).map((m: any) => ({
+    userId: m.userId ?? m.user?.id ?? m.id,
+    name: m.user?.name ?? m.name ?? 'Miembro',
+    balance: m.balance ?? 0,
+  }));
+  return {
+    id: raw.id,
+    name: raw.name,
+    emoji: raw.emoji ?? '👥',
+    description: raw.description,
+    members,
+    createdBy: raw.createdBy ?? raw.created_by,
+    createdAt: raw.createdAt ?? raw.created_at,
+    totalExpenses: raw.totalExpenses ?? 0,
+    lastActivity: raw.lastActivity ?? raw.createdAt ?? raw.created_at,
+  };
+}
 
 export async function getGroups(): Promise<Group[]> {
   if (USE_MOCK) {
@@ -13,8 +33,8 @@ export async function getGroups(): Promise<Group[]> {
     return [...mockGroups];
   }
 
-  const { data } = await apiClient.get<Group[]>('/groups');
-  return data;
+  const { data } = await apiClient.get<any[]>('/groups');
+  return (data ?? []).map(mapGroup);
 }
 
 export async function getGroup(id: string): Promise<Group> {
@@ -25,8 +45,8 @@ export async function getGroup(id: string): Promise<Group> {
     return group;
   }
 
-  const { data } = await apiClient.get<Group>(`/groups/${id}`);
-  return data;
+  const { data } = await apiClient.get<any>(`/groups/${id}`);
+  return mapGroup(data);
 }
 
 export async function createGroup(dto: CreateGroupDTO): Promise<Group> {
@@ -49,8 +69,11 @@ export async function createGroup(dto: CreateGroupDTO): Promise<Group> {
     return newGroup;
   }
 
-  const { data } = await apiClient.post<Group>('/groups', dto);
-  return data;
+  const { data } = await apiClient.post<any>('/groups', {
+    name: dto.name,
+    memberIds: dto.memberIds,
+  });
+  return mapGroup(data);
 }
 
 export async function getGroupExpenses(groupId: string): Promise<GroupExpense[]> {
@@ -59,8 +82,20 @@ export async function getGroupExpenses(groupId: string): Promise<GroupExpense[]>
     return mockExpenses.filter((e) => e.groupId === groupId);
   }
 
-  const { data } = await apiClient.get<GroupExpense[]>(`/groups/${groupId}/expenses`);
-  return data;
+  const { data } = await apiClient.get<any[]>(`/groups/${groupId}/expenses`);
+  return (data ?? []).map((e: any) => ({
+    id: e.id,
+    groupId: e.groupId,
+    title: e.description,
+    amount: Number(e.amount),
+    paidBy: e.paidBy,
+    paidByName: e.user?.name ?? 'Miembro',
+    splitBetween: JSON.parse(e.splitBetween ?? '[]'),
+    splitType: 'equal',
+    categoryId: 'other',
+    date: e.date ?? e.createdAt ?? new Date().toISOString(),
+    createdAt: e.date ?? e.createdAt ?? new Date().toISOString(),
+  }));
 }
 
 export async function addGroupExpense(
@@ -72,15 +107,39 @@ export async function addGroupExpense(
     const newExpense: GroupExpense = {
       id: `gexp_${Date.now()}`,
       groupId,
-      ...dto,
+      title: dto.title,
+      amount: dto.amount,
+      paidBy: dto.paidBy || 'user_001',
+      splitBetween: dto.splitBetween,
+      splitType: dto.splitType || 'equal',
+      customSplits: dto.customSplits,
+      categoryId: dto.categoryId || 'other',
+      note: dto.note,
+      date: dto.date || new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
     mockExpenses = [newExpense, ...mockExpenses];
     return newExpense;
   }
 
-  const { data } = await apiClient.post<GroupExpense>(`/groups/${groupId}/expenses`, dto);
-  return data;
+  const payload = {
+    amount: dto.amount,
+    description: dto.title ?? dto.note,
+    splitBetween: dto.splitBetween,
+  };
+  const { data } = await apiClient.post<any>(`/groups/${groupId}/expenses`, payload);
+  return {
+    id: data.id,
+    groupId,
+    title: data.description ?? dto.title,
+    amount: Number(data.amount),
+    paidBy: data.paidBy,
+    splitBetween: JSON.parse(data.splitBetween ?? '[]'),
+    splitType: 'equal',
+    categoryId: 'other',
+    date: data.date ?? new Date().toISOString(),
+    createdAt: data.date ?? new Date().toISOString(),
+  };
 }
 
 export function calculateDebts(group: Group): DebtSummary[] {

@@ -20,6 +20,7 @@ export const MOCK_USER: User = {
   monthsActive: 3,
   goalsCompleted: 2,
   createdAt: '2024-02-15T10:00:00Z',
+  badges: '[]',
 };
 
 // ─── Mock Transactions ───
