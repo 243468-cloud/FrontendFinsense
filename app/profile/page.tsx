@@ -1,166 +1,465 @@
 'use client';
+
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { User as UserIcon, Mail, MapPin, Calendar, Award, Flame, LogOut, ArrowLeft, Shield } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
-import { logout as serviceLogout } from '@/services/authService';
-import { formatRelativeDate, getInitials } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowLeft, 
+  User, 
+  Mail, 
+  MapPin, 
+  Moon, 
+  Sun, 
+  Plus, 
+  X, 
+  LogOut, 
+  Award, 
+  Flame, 
+  Target, 
+  Tag,
+  Lock,
+  Palette
+} from 'lucide-react';
 import { PageTransition, containerVariants, itemVariants } from '@/components/layout/PageTransition';
-import { Button } from '@/components/ui/Button';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
+import { getInitials, cn } from '@/lib/utils';
+
+const CHIAPAS_CITIES = [
+  'Tuxtla Gutiérrez',
+  'Suchiapa'
+];
+
+const ANIMAL_AVATARS = [
+  '🦁', '🐯', '🐼', '🐨', '🦊', '🐻', '🐰', '🐹', '🐶', '🐱',
+  '🐷', '🐮', '🐸', '🐵', '🐔', '🐧', '🦉', '🦆', '🦖', '🐙',
+  '🐝', '🐢', '🐬', '🦦'
+];
+
+const COLOR_TEMPLATES = [
+  { id: 'blue', name: 'Azul', color: '#0A1128' },
+  { id: 'green', name: 'Esmeralda', color: '#064E3B' },
+  { id: 'purple', name: 'Morado', color: '#4C1D95' },
+  { id: 'rose', name: 'Carmín', color: '#831843' },
+  { id: 'slate', name: 'Carbón', color: '#1E293B' },
+];
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout: storeLogout } = useAuthStore();
+  const { addToast } = useUIStore();
+  const { 
+    user, 
+    preferences, 
+    updateUserProfile, 
+    updateUserPreferences, 
+    logout 
+  } = useAuthStore();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth');
+    }
+  }, [user, router]);
+
+  // Profile forms state
+  const [profileName, setProfileName] = useState(user?.name ?? '');
+  const [profileEmail, setProfileEmail] = useState(user?.email ?? '');
+  const [profileCity, setProfileCity] = useState(user?.city ?? 'Tuxtla Gutiérrez');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState(user?.avatar ?? '🦁');
+
+  // Tag manager state
+  const [newTag, setNewTag] = useState('');
+
+  // Preference change handler
+  const toggleDarkMode = () => {
+    const nextTheme = preferences.theme === 'light' ? 'dark' : 'light';
+    updateUserPreferences({ theme: nextTheme });
+    addToast({ 
+      message: `Modo ${nextTheme === 'dark' ? 'oscuro' : 'claro'} activado`, 
+      type: 'success' 
+    });
+  };
+
+  useEffect(() => {
+    // Apply class to html
+    if (preferences.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [preferences.theme]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      addToast({ message: 'El nombre no puede estar vacío', type: 'warning' });
+      return;
+    }
+    if (!profileEmail.trim() || !profileEmail.includes('@')) {
+      addToast({ message: 'Introduce un correo válido', type: 'warning' });
+      return;
+    }
+
+    updateUserProfile(profileName.trim(), profileEmail.trim(), profileCity, profileAvatar);
+    
+    if (profilePassword.trim()) {
+      addToast({ message: 'Contraseña actualizada correctamente', type: 'success' });
+      setProfilePassword('');
+    }
+    
+    addToast({ message: 'Perfil actualizado correctamente', type: 'success' });
+  };
+
+  const handleAddTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    const tag = newTag.trim().toLowerCase();
+    if (!tag) return;
+    if (preferences.customTags.includes(tag)) {
+      addToast({ message: 'Esta etiqueta ya existe', type: 'warning' });
+      return;
+    }
+    
+    updateUserPreferences({
+      customTags: [...preferences.customTags, tag]
+    });
+    setNewTag('');
+    addToast({ message: `Etiqueta "${tag}" agregada`, type: 'success' });
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    updateUserPreferences({
+      customTags: preferences.customTags.filter(t => t !== tagToRemove)
+    });
+    addToast({ message: 'Etiqueta eliminada', type: 'success' });
+  };
 
   const handleLogout = () => {
-    serviceLogout();
-    storeLogout();
-    router.replace('/auth');
+    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+      logout();
+      addToast({ message: 'Sesión cerrada', type: 'success' });
+      router.push('/auth');
+    }
   };
 
   if (!user) return null;
 
-  // XP Progress Calculation
-  const xpPercentage = Math.min(100, Math.max(0, (user.xp / (user.xpToNextLevel || 500)) * 100));
-
   return (
-    <PageTransition className="min-h-screen bg-surface-2 pb-24">
+    <PageTransition className="min-h-screen bg-slate-50/50 dark:bg-surface-2 transition-colors duration-200 pb-20 text-text-primary">
       {/* ─── Header ─── */}
-      <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="w-10 h-10 rounded-xl hover:bg-surface-3 flex items-center justify-center text-text-primary transition-colors"
-          aria-label="Regresar al Dashboard"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="font-syne font-bold text-lg text-text-primary">Mi Perfil</h1>
-          <p className="font-dm text-xs text-text-secondary">Configuración y estadísticas</p>
+      <header className="sticky top-0 z-20 bg-white/95 dark:bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3.5 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="touch-target rounded-xl hover:bg-slate-100 dark:hover:bg-surface-3 transition-colors p-2"
+            aria-label="Volver al Dashboard"
+          >
+            <ArrowLeft size={22} className="text-text-primary" />
+          </button>
+          <div>
+            <h1 className="font-syne font-bold text-lg text-text-primary">Mi Perfil</h1>
+            <p className="font-dm text-xs text-text-secondary">Configuración y cuenta</p>
+          </div>
         </div>
+        <button
+          onClick={handleLogout}
+          className="text-xs font-dm font-semibold text-error hover:bg-error/5 dark:hover:bg-error/10 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors touch-target border border-error/10 bg-white dark:bg-surface shadow-sm"
+          aria-label="Cerrar sesión"
+        >
+          <LogOut size={15} />
+          <span>Cerrar sesión</span>
+        </button>
       </header>
 
-      <div className="px-4 py-6 space-y-6 max-w-xl mx-auto">
-        {/* ─── Avatar & Basic Info ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          className="bg-surface border border-border rounded-3xl p-6 shadow-card text-center relative overflow-hidden"
-        >
-          {/* Background decoration */}
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-accent to-purple-500" />
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto md:px-8 space-y-6 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent mx-auto flex items-center justify-center text-white font-syne font-bold text-3xl shadow-lg border-4 border-surface mt-2">
-            {getInitials(user.name)}
-          </div>
-          
-          <h2 className="font-syne font-bold text-xl text-text-primary mt-4">{user.name}</h2>
-          <p className="font-dm text-xs text-text-secondary flex items-center justify-center gap-1.5 mt-1.5">
-            <Mail size={12} />
-            {user.email}
-          </p>
-
-          <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-border">
-            <div className="bg-surface-2 rounded-2xl p-3 text-left">
-              <p className="font-dm text-[10px] text-text-secondary flex items-center gap-1">
-                <MapPin size={10} /> Ciudad
-              </p>
-              <p className="font-syne font-bold text-xs text-text-primary mt-1">
-                {user.city}
-              </p>
-            </div>
-            <div className="bg-surface-2 rounded-2xl p-3 text-left">
-              <p className="font-dm text-[10px] text-text-secondary flex items-center gap-1">
-                <Calendar size={10} /> Registro
-              </p>
-              <p className="font-syne font-bold text-xs text-text-primary mt-1">
-                {formatRelativeDate(user.createdAt)}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ─── Gamification & Levels ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          className="bg-surface border border-border rounded-3xl p-6 shadow-card space-y-5"
-        >
-          <h3 className="font-syne font-bold text-sm text-text-primary flex items-center gap-2">
-            <Award className="text-primary" size={18} />
-            Nivel y Logros
-          </h3>
-
-          {/* Level progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-end">
-              <div>
-                <span className="font-dm text-xs text-text-secondary">Nivel Actual</span>
-                <p className="font-syne font-extrabold text-2xl text-primary mt-0.5">Nivel {user.level}</p>
+          {/* ─── Column Left (Sidebar) ─── */}
+          <aside className="lg:col-span-4 bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card space-y-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#1A66FF] to-accent flex items-center justify-center text-white font-syne font-bold text-4xl shadow-blue-sm relative group overflow-hidden">
+                {profileAvatar ? (
+                  <span className="text-4xl leading-none">{profileAvatar}</span>
+                ) : (
+                  getInitials(user.name)
+                )}
               </div>
-              <span className="font-mono text-xs text-text-secondary">
-                {user.xp} / {user.xpToNextLevel || 500} XP
-              </span>
+              <div className="space-y-1.5">
+                <h2 className="font-syne font-bold text-lg text-text-primary">{user.name}</h2>
+                <p className="font-dm text-xs text-text-secondary">{user.email}</p>
+                <div className="flex items-center justify-center gap-1 text-xs text-[#1A66FF] font-semibold bg-[#F0F5FF] px-2.5 py-1 rounded-full border border-blue-100 w-fit mx-auto">
+                  <MapPin size={12} />
+                  <span>{user.city}</span>
+                </div>
+              </div>
             </div>
-            
-            {/* Progress bar */}
-            <div className="w-full h-3 bg-surface-2 border border-border rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${xpPercentage}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+
+            {/* Level status */}
+            <div className="border-t border-border pt-4 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-dm text-text-secondary">Nivel actual</span>
+                <span className="font-syne font-bold text-[#1A66FF]">Nivel {user.level}</span>
+              </div>
+              <ProgressBar
+                value={user.xp}
+                max={user.xpToNextLevel}
+                color="#1A66FF"
+                height="xs"
               />
-            </div>
-            <p className="font-dm text-[10px] text-text-secondary">
-              ¡Gana XP registrando transacciones diarias y cumpliendo tus metas de ahorro!
-            </p>
-          </div>
-
-          {/* Streaks & Badges */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-            {/* Saving Streak */}
-            <div className="flex items-center gap-3 bg-orange-50/30 border border-orange-100/50 rounded-2xl p-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
-                <Flame size={20} className="fill-orange-500 animate-pulse" />
-              </div>
-              <div>
-                <p className="font-dm text-[10px] text-orange-600/85 font-semibold">Racha actual</p>
-                <p className="font-mono font-bold text-lg text-orange-700">{user.streakDays} días</p>
+              <div className="flex justify-between text-[9px] font-mono text-text-secondary pt-0.5">
+                <span>{user.xp} XP</span>
+                <span>{user.xpToNextLevel} XP para Lvl {user.level + 1}</span>
               </div>
             </div>
 
-            {/* Max Streak */}
-            <div className="flex items-center gap-3 bg-purple-50/30 border border-purple-100/50 rounded-2xl p-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-                <Shield size={20} />
+            {/* Dark Mode switcher inside sidebar */}
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  {preferences.theme === 'dark' ? (
+                    <Moon size={18} className="text-accent" />
+                  ) : (
+                    <Sun size={18} className="text-warning" />
+                  )}
+                  <div>
+                    <p className="font-syne font-semibold text-xs text-text-primary">Modo oscuro</p>
+                    <p className="font-dm text-[10px] text-text-secondary">Fatiga visual reducida</p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={toggleDarkMode}
+                  className={`w-12 h-6.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
+                    preferences.theme === 'dark' ? 'bg-[#1A66FF]' : 'bg-slate-200 border border-border'
+                  }`}
+                  role="switch"
+                  aria-checked={preferences.theme === 'dark'}
+                  aria-label="Alternar modo oscuro"
+                >
+                  <div
+                    className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                      preferences.theme === 'dark' ? 'translate-x-5.5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
-              <div>
-                <p className="font-dm text-[10px] text-purple-600/85 font-semibold">Racha máxima</p>
-                <p className="font-mono font-bold text-lg text-purple-700">{user.maxStreak || user.streakDays} días</p>
+              
+              {/* Theme Color Picker */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Palette size={18} className="text-primary" />
+                  <div>
+                    <p className="font-syne font-semibold text-xs text-text-primary">Color de fondo</p>
+                    <p className="font-dm text-[10px] text-text-secondary">Personaliza tu dashboard</p>
+                  </div>
+                </div>
+                <div className="flex justify-between px-1">
+                  {COLOR_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => {
+                        updateUserPreferences({ themeColor: template.color });
+                        addToast({ message: `Color cambiado a ${template.name}`, type: 'success' });
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                        preferences.themeColor === template.color ? "border-primary scale-110" : "border-transparent shadow-sm"
+                      )}
+                      style={{ backgroundColor: template.color }}
+                      title={template.name}
+                      aria-label={`Seleccionar color ${template.name}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </aside>
 
-        {/* ─── Actions ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-3"
-        >
-          <Button
-            onClick={handleLogout}
-            variant="secondary"
-            className="w-full border-red-200 hover:bg-red-50 text-red-600 font-syne font-bold flex items-center justify-center gap-2 py-3.5 rounded-2xl"
-          >
-            <LogOut size={16} />
-            Cerrar Sesión
-          </Button>
-        </motion.div>
+          {/* ─── Column Right (Dynamic Content) ─── */}
+          <main className="lg:col-span-8 space-y-6">
+            
+            {/* Bloque Superior: Rendimiento/Gamificación */}
+            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
+              <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-4">Rendimiento y Logros</h3>
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
+                  <div className="text-[#1A66FF] mb-1.5"><Flame size={20} /></div>
+                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.streakDays} días</p>
+                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Racha actual</p>
+                </div>
+                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
+                  <div className="text-[#1A66FF] mb-1.5"><Target size={20} /></div>
+                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.goalsCompleted}</p>
+                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Metas logradas</p>
+                </div>
+                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
+                  <div className="text-[#1A66FF] mb-1.5"><Award size={20} /></div>
+                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.maxStreak} días</p>
+                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Racha récord</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Bloque Medio: Datos Personales Form */}
+            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
+              <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-4">Datos personales</h3>
+              <form onSubmit={handleSaveProfile} className="flex flex-col space-y-5">
+                
+                {/* Animal Avatar Selector */}
+                <div className="space-y-2">
+                  <label className="font-syne font-semibold text-xs text-text-primary pl-1">
+                    Icono de perfil (Animales)
+                  </label>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-slate-50 dark:bg-surface-2 p-3 rounded-2xl border border-border max-h-36 overflow-y-auto shadow-inner">
+                    {ANIMAL_AVATARS.map((emoji) => {
+                      const isSelected = profileAvatar === emoji;
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setProfileAvatar(emoji)}
+                          className={cn(
+                            'h-10 w-10 text-xl rounded-xl flex items-center justify-center transition-all duration-200',
+                            isSelected
+                              ? 'bg-primary text-white scale-110 shadow-blue-sm'
+                              : 'bg-white dark:bg-surface hover:bg-slate-100 dark:hover:bg-surface-3 text-text-primary border border-border'
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nombre completo</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <input
+                        type="text"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
+                        placeholder="Tu nombre"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Correo electrónico</label>
+                    <div className="relative">
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <input
+                        type="email"
+                        value={profileEmail}
+                        onChange={(e) => setProfileEmail(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
+                        placeholder="ejemplo@correo.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Municipio de Chiapas</label>
+                    <div className="relative">
+                      <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <select
+                        value={profileCity}
+                        onChange={(e) => setProfileCity(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all appearance-none shadow-sm cursor-pointer"
+                      >
+                        {CHIAPAS_CITIES.map((city) => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nueva contraseña (dejar vacío para mantener la actual)</label>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <input
+                        type="password"
+                        value={profilePassword}
+                        onChange={(e) => setProfilePassword(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-3 bg-[#1A66FF] hover:bg-[#0047D4] text-white font-dm font-bold text-sm rounded-xl transition-colors shadow-blue-sm self-end animate-pulse-subtle"
+                >
+                  Guardar cambios
+                </button>
+              </form>
+            </section>
+
+            {/* Bloque Inferior: Etiquetas Personalizadas */}
+            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
+              <div className="flex items-center gap-2 mb-2">
+                <Tag size={18} className="text-[#1A66FF]" />
+                <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary">Etiquetas personalizadas</h3>
+              </div>
+              <p className="font-dm text-xs text-text-secondary mb-4 leading-normal">
+                Agrega etiquetas para organizar tus gastos colaborativos y de uso diario de manera más flexible.
+              </p>
+
+              {/* List of tags */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {preferences.customTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 pl-3 pr-1 py-1.5 rounded-full bg-[#F0F5FF] border border-blue-100 text-[#1A66FF] font-dm font-semibold text-xs"
+                  >
+                    <span>#{tag}</span>
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="w-5 h-5 rounded-full hover:bg-[#1A66FF]/10 flex items-center justify-center transition-colors text-[#1A66FF]/70 hover:text-[#1A66FF]"
+                      aria-label={`Eliminar etiqueta ${tag}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                {preferences.customTags.length === 0 && (
+                  <span className="font-dm text-xs text-text-secondary italic">
+                    No tienes etiquetas personalizadas aún.
+                  </span>
+                )}
+              </div>
+
+              {/* Form to add tags */}
+              <form onSubmit={handleAddTag} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Nueva etiqueta (ej. cafeteria)..."
+                  maxLength={20}
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-xs sm:text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] transition-all shadow-sm"
+                />
+                <button
+                  type="submit"
+                  className="w-10 h-10 bg-[#1A66FF] hover:bg-[#0047D4] text-white rounded-xl flex items-center justify-center transition-colors shadow-blue-sm touch-target"
+                  aria-label="Agregar etiqueta"
+                >
+                  <Plus size={18} />
+                </button>
+              </form>
+            </section>
+          </main>
+        </div>
       </div>
     </PageTransition>
   );

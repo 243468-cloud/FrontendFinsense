@@ -1,12 +1,14 @@
 'use client';
-// Dashboard Principal con Panel de Notificaciones Conectado al Backend
+// Dashboard Principal
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Plus, Target, Users, BarChart3,
-  Bell, Settings, ArrowRight, X, Lightbulb,
+  Bell, Settings, ArrowRight, Flame, Check, Search, Receipt
 } from 'lucide-react';
+
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
 } from 'recharts';
@@ -16,49 +18,46 @@ import { TransactionItem } from '@/components/ui/TransactionItem';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SkeletonCard, SkeletonTransactionItem } from '@/components/ui/SkeletonCard';
 import { BenchmarkBar } from '@/components/ui/BenchmarkBar';
-import { Button } from '@/components/ui/Button';
+import { AchievementBadge } from '@/components/ui/AchievementBadge';
+import { MOCK_ACHIEVEMENTS } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
 import { getTransactions, deleteTransaction } from '@/services/transactionService';
-import { getSummary, getBenchmarks } from '@/services/analyticsService';
+import { getSummary } from '@/services/analyticsService';
 import { getGoals } from '@/services/goalService';
-import { getNotifications, markAsRead, markAllAsRead, type Notification } from '@/services/notificationService';
-import { getGreeting, getInitials, formatCurrency, formatRelativeDate } from '@/lib/utils';
+import { getNotifications } from '@/services/notificationService';
+import { cn, getGreeting, getInitials, formatCurrency, getIconForEmoji } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
 import type { Transaction } from '@/types/transaction.types';
-import type { Summary, BenchmarkReport } from '@/types/analytics.types';
+import type { Summary } from '@/types/analytics.types';
 import type { Goal } from '@/types/goal.types';
 
 const PIE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFB800', '#A855F7', '#45B7D1'];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, preferences } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [benchmarks, setBenchmarks] = useState<BenchmarkReport | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [txs, sum, gls, notifs, bench] = await Promise.all([
+        const [txs, sum, gls, notifs] = await Promise.all([
           getTransactions({ limit: 5 }),
           getSummary('month'),
           getGoals(),
           getNotifications(),
-          getBenchmarks('Tuxtla Gutiérrez'),
         ]);
         setTransactions(txs);
         setSummary(sum);
         setGoals(gls.filter((g) => g.status === 'active').slice(0, 2));
-        setNotifications(notifs);
-        setBenchmarks(bench);
+        setUnreadNotifications(notifs.filter((n) => !n.read).length);
       } catch {
         addToast({ message: 'Error al cargar datos', type: 'error' });
       } finally {
@@ -68,54 +67,13 @@ export default function DashboardPage() {
     loadData();
   }, [addToast]);
 
-  // Polling for real-time notifications checking
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const notifs = await getNotifications();
-        const currentUnreadIds = notifications.filter(n => !n.read).map(n => n.id);
-        const newUnread = notifs.filter(n => !n.read && !currentUnreadIds.includes(n.id));
-        if (newUnread.length > 0) {
-          setNotifications(notifs);
-          newUnread.forEach(n => {
-            addToast({ message: `🔔 ${n.title}: ${n.body}`, type: 'success' });
-          });
-        }
-      } catch {}
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [notifications, addToast]);
-
   async function handleDeleteTransaction(id: string) {
     await deleteTransaction(id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     addToast({ message: 'Transacción eliminada', type: 'success' });
   }
 
-  async function handleMarkRead(id: string) {
-    try {
-      await markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
-    } catch {
-      addToast({ message: 'Error al marcar como leída', type: 'error' });
-    }
-  }
-
-  async function handleMarkAllRead() {
-    try {
-      await markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      addToast({ message: 'Todas las notificaciones leídas', type: 'success' });
-    } catch {
-      addToast({ message: 'Error al marcar todas como leídas', type: 'error' });
-    }
-  }
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const pieData = (summary?.topCategories ?? []).slice(0, 5).map((cat) => ({
+  const pieData = summary?.topCategories.slice(0, 5).map((cat) => ({
     name: cat.label,
     value: cat.amount,
     emoji: cat.emoji,
@@ -125,54 +83,80 @@ export default function DashboardPage() {
   const firstName = user?.name.split(' ')[0] ?? 'Usuario';
 
   return (
-    <PageTransition className="min-h-screen bg-surface-2 pb-24">
+    <PageTransition className="min-h-screen bg-surface-2">
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <p className="font-dm text-xs text-text-secondary">{greeting}</p>
-            <h1 className="font-syne font-bold text-lg text-text-primary">
-              {firstName} 👋
-            </h1>
-          </div>
+          <Link href="/profile" className="flex items-center gap-3 text-left group hover:opacity-90 transition-opacity cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-sm border border-primary/20 text-lg">
+              {user?.avatar || '👤'}
+            </div>
+            <div className="flex flex-col">
+              <p className="font-dm text-xs text-text-secondary group-hover:text-primary transition-colors">{greeting}</p>
+              <h1 className="font-syne font-bold text-lg text-text-primary group-hover:text-primary transition-colors leading-tight">
+                {firstName} 👋
+              </h1>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-2">
+            {/* Level Pill */}
+            {user && (
+              <button
+                onClick={() => router.push('/goals')}
+                className="flex items-center gap-1 bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors px-2.5 py-1 rounded-full text-primary"
+                aria-label={`Nivel ${user.level}`}
+              >
+                <span className="text-[10px] font-dm font-bold">LVL</span>
+                <span className="font-mono text-xs font-bold">{user.level}</span>
+              </button>
+            )}
+
+            {/* Streak Pill */}
+            {user && (
+              <div
+                className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full text-orange-500 animate-pulse"
+                aria-label={`Racha de ${user.streakDays} días`}
+              >
+                <Flame size={13} fill="currentColor" className="text-orange-500" />
+                <span className="font-mono text-xs font-bold">{user.streakDays}d</span>
+              </div>
+            )}
+
             <button
-              onClick={() => setShowNotifications(true)}
-              className="touch-target rounded-xl hover:bg-surface-2 transition-colors relative w-10 h-10 flex items-center justify-center"
-              aria-label="Notificaciones"
+              onClick={() => addToast({ message: 'Búsqueda no implementada aún', type: 'info' })}
+              className="touch-target rounded-xl hover:bg-surface-2 transition-colors p-2 text-text-secondary"
+              aria-label="Buscar"
             >
-              <Bell size={22} className="text-text-secondary" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 bg-red-500 rounded-full text-[9px] text-white font-mono font-bold flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
+              <Search size={22} />
             </button>
 
             <button
-              onClick={() => router.push('/profile')}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-sm touch-target"
-              aria-label="Ver perfil"
+              onClick={() => router.push('/notifications')}
+              className="touch-target rounded-xl hover:bg-surface-2 transition-colors relative"
+              aria-label="Notificaciones"
             >
-              {getInitials(user?.name ?? 'U')}
+              <Bell size={22} className="text-text-secondary" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full" aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto md:max-w-4xl">
-        {/* ─── Balance Card ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative overflow-hidden rounded-3xl p-6 text-white"
-          style={{
-            background: 'linear-gradient(135deg, #0057FF 0%, #003DB5 50%, #00C2FF 100%)',
-            boxShadow: '0 12px 40px rgba(0, 87, 255, 0.30)',
-          }}
-        >
+<div className="p-4 space-y-4 max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto md:px-6 md:py-6">
+         {/* ─── Balance Card ─── */}
+         <motion.div
+           variants={itemVariants}
+           initial="hidden"
+           animate="visible"
+           className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white transition-colors duration-500"
+           style={{
+             background: `linear-gradient(135deg, ${preferences?.themeColor || '#0A1128'} 0%, ${preferences?.themeColor === '#0A1128' ? '#0057FF' : (preferences?.themeColor || '#0A1128') + 'DD'} 100%)`,
+             boxShadow: '0 8px 30px rgba(0, 87, 255, 0.15)',
+           }}
+         >
           {/* Decorative shapes */}
           <div
             className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20"
@@ -239,12 +223,30 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Action Buttons Row */}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => router.push('/transactions/new?type=income')}
+                className="flex-1 py-2 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white rounded-xl font-dm font-semibold text-xs transition-all flex items-center justify-center gap-1.5 border border-white/5 shadow-sm"
+              >
+                <Plus size={14} />
+                <span>Agregar Ingreso</span>
+              </button>
+              <button
+                onClick={() => router.push('/transactions/new?type=expense')}
+                className="flex-1 py-2 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white rounded-xl font-dm font-semibold text-xs transition-all flex items-center justify-center gap-1.5 border border-white/5 shadow-sm"
+              >
+                <Plus size={14} />
+                <span>Registrar Gasto</span>
+              </button>
+            </div>
+
             {/* Savings rate */}
             {!isLoading && summary && (
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-white/70 mb-1.5">
+                <div className="flex justify-between text-xs text-white font-medium mb-1.5">
                   <span className="font-dm">Tasa de ahorro</span>
-                  <span className="font-mono font-semibold text-white">{summary.savingsRate.toFixed(1)}%</span>
+                  <span className="font-mono font-bold text-yellow-300">{summary.savingsRate.toFixed(1)}%</span>
                 </div>
                 <ProgressBar
                   value={summary.savingsRate}
@@ -258,39 +260,104 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
+        {/* ─── Racha de Registro Diario (Gamificada) ─── */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-surface border border-border text-text-primary shadow-card hover:shadow-card-hover transition-all duration-200"
+          whileHover={{ y: -1 }}
+        >
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500">
+                <Flame size={24} fill="currentColor" className="text-orange-500 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary">Racha de Registro Diario</h3>
+                <p className="font-dm text-xs text-text-secondary mt-0.5">
+                  Llevas <span className="font-bold text-orange-500 font-mono text-sm">{user?.streakDays ?? 7} días</span> seguidos. ¡Sigue quemando!
+                </p>
+              </div>
+            </div>
+            <span className="font-mono text-[10px] font-bold text-orange-500 bg-orange-50 border border-orange-200/60 px-2.5 py-1 rounded-full uppercase tracking-wide">
+              Racha Activa
+            </span>
+          </div>
+
+          {/* Week Progress Circles */}
+          <div className="grid grid-cols-7 gap-2 relative z-10 pt-3 border-t border-border">
+            {[
+              { label: 'L', active: true,  current: false },
+              { label: 'M', active: true,  current: false },
+              { label: 'M', active: true,  current: false },
+              { label: 'J', active: true,  current: false },
+              { label: 'V', active: true,  current: false },
+              { label: 'S', active: true,  current: true  }, // Current day
+              { label: 'D', active: false, current: false },
+            ].map((day, idx) => (
+              <div key={idx} className="flex flex-col items-center gap-1.5">
+                <motion.div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all relative',
+                    day.current 
+                      ? 'bg-orange-50 text-orange-500 border-2 border-orange-500 shadow-orange-sm' 
+                      : day.active
+                        ? 'bg-orange-500 text-white border border-orange-500 shadow-blue-sm'
+                        : 'bg-surface-2 text-text-secondary/60 border border-border'
+                  )}
+                  animate={day.current ? { scale: [1, 1.05, 1] } : {}}
+                  transition={day.current ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : {}}
+                >
+                  {day.active ? (
+                    day.current ? (
+                      <Flame size={14} fill="currentColor" />
+                    ) : (
+                      <Check size={14} strokeWidth={3} className="text-white" />
+                    )
+                  ) : (
+                    day.label
+                  )}
+                </motion.div>
+                <span className="text-[10px] font-dm font-semibold text-text-secondary">{day.label}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+
         {/* ─── Quick Actions ─── */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-4 gap-3"
+          className="grid grid-cols-4 gap-4 sm:gap-6"
           aria-label="Acciones rápidas"
         >
-          {[
-            { icon: Plus,     label: 'Gasto',    href: '/transactions/new', color: '#FF6B6B', bg: '#FFF0F0' },
-            { icon: TrendingUp,label: 'Ingreso',  href: '/transactions/new', color: '#00C896', bg: '#F0FFF9' },
-            { icon: Target,   label: 'Metas',    href: '/goals',            color: '#0057FF', bg: '#F0F5FF' },
-            { icon: Users,    label: 'Grupos',   href: '/groups',           color: '#A855F7', bg: '#FAF0FF' },
+          {[{ icon: Receipt,   label: 'Historial', href: '/transactions',     color: '#FF6B6B', bg: '#FFF0F0' },
+            { icon: BarChart3, label: 'Analytics', href: '/analytics',        color: '#00C896', bg: '#F0FFF9' },
+            { icon: Target,    label: 'Metas',     href: '/goals',            color: '#0057FF', bg: '#F0F5FF' },
+            { icon: Users,     label: 'Grupos',    href: '/groups',           color: '#A855F7', bg: '#FAF0FF' },
           ].map((action) => {
             const Icon = action.icon;
             return (
               <motion.button
                 key={action.label}
                 variants={itemVariants}
-                className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-surface border border-border transition-all duration-150 hover:shadow-card"
+                className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-surface border border-border transition-all duration-150 hover:shadow-card-hover"
                 onClick={() => router.push(action.href)}
                 aria-label={action.label}
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ y: -2 }}
               >
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center"
                   style={{ backgroundColor: action.bg }}
                   aria-hidden="true"
                 >
-                  <Icon size={22} style={{ color: action.color }} />
+                  <Icon size={20} className="sm:size-26" style={{ color: action.color }} />
                 </div>
-                <span className="font-dm text-xs font-medium text-text-secondary">
+                <span className="font-dm text-xs sm:text-sm font-semibold text-text-secondary leading-tight text-center">
                   {action.label}
                 </span>
               </motion.button>
@@ -299,30 +366,30 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* ─── Spending Donut Chart + Benchmarks ─── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Donut chart */}
           <motion.div
             variants={itemVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+            className="bg-surface rounded-2xl p-5 sm:p-6 border border-border shadow-card"
           >
-            <h2 className="font-syne font-bold text-base text-text-primary mb-3">
+            <h2 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-2 sm:mb-3">
               Gastos del mes
             </h2>
             {isLoading ? (
-              <div className="h-48 shimmer-bg rounded-xl" />
+              <div className="h-40 sm:h-48 shimmer-bg rounded-xl" />
             ) : (
-              <div className="h-48">
+              <div className="h-40 sm:h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={pieData}
-                      cx="50%"
+                      cx="35%"
                       cy="50%"
-                      innerRadius={55}
-                      outerRadius={80}
+                      innerRadius="45%"
+                      outerRadius="75%"
                       paddingAngle={3}
                       dataKey="value"
                     >
@@ -344,9 +411,12 @@ export default function DashboardPage() {
                       }}
                     />
                     <Legend
+                      layout="vertical"
+                      align="right"
+                      verticalAlign="middle"
                       iconType="circle"
                       iconSize={8}
-                      wrapperStyle={{ fontSize: 11, fontFamily: 'DM Sans, sans-serif' }}
+                      wrapperStyle={{ fontSize: 12, fontFamily: 'DM Sans, sans-serif', paddingLeft: 10 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -354,21 +424,28 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* Benchmarks locales */}
           <motion.div
             variants={itemVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-surface rounded-2xl p-4 border border-border shadow-card"
+            className="bg-surface rounded-2xl p-5 sm:p-6 border border-border shadow-card"
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-syne font-bold text-base text-text-primary">
                 Benchmarks Locales
               </h2>
-              <span className="text-xs font-dm text-text-secondary bg-surface-2 px-2 py-1 rounded-lg border border-border">
-                vs. Tuxtla
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-dm text-text-secondary">vs.</span>
+                <select
+                  className="text-xs font-dm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  aria-label="Seleccionar ciudad de comparación"
+                  defaultValue="Tuxtla"
+                >
+                  <option value="Tuxtla">Tuxtla</option>
+                  <option value="Suchiapa">Suchiapa</option>
+                </select>
+              </div>
             </div>
             {isLoading ? (
               <div className="space-y-4">
@@ -378,27 +455,15 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {benchmarks && benchmarks.benchmarks.length > 0 ? (
-                  benchmarks.benchmarks.slice(0, 3).map((b) => (
-                    <BenchmarkBar
-                      key={b.categoryId}
-                      emoji={b.emoji}
-                      label={b.label}
-                      userValue={b.userAmount}
-                      avgValue={b.cityAverage}
-                    />
-                  ))
-                ) : (
-                  <p className="font-dm text-xs text-text-secondary">Sin datos de benchmark este mes.</p>
-                )}
-                {benchmarks?.suggestion && (
-                  <div className="mt-3 bg-blue-50/50 border border-blue-100/50 rounded-2xl p-3 flex gap-2">
-                    <Lightbulb size={16} className="text-primary shrink-0 mt-0.5" />
-                    <p className="font-dm text-xs text-text-secondary leading-normal">
-                      {benchmarks.suggestion}
-                    </p>
-                  </div>
-                )}
+                {(summary?.topCategories ?? []).slice(0, 3).map((cat, i) => (
+                  <BenchmarkBar
+                    key={cat.categoryId}
+                    emoji={cat.emoji}
+                    label={cat.label}
+                    userValue={cat.amount}
+                    avgValue={cat.amount / (1 + cat.trend / 100)}
+                  />
+                ))}
               </div>
             )}
           </motion.div>
@@ -429,15 +494,17 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {goals.map((goal) => {
                 const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+                const GoalIcon = getIconForEmoji(goal.emoji);
                 return (
                   <div key={goal.id} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl" role="img" aria-hidden="true">{goal.emoji}</span>
+                        <GoalIcon size={18} className="text-primary flex-shrink-0" />
                         <p className="font-dm font-semibold text-sm text-text-primary">
                           {goal.title}
                         </p>
                       </div>
+
                       <p className="font-mono text-xs text-text-secondary">
                         {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
                       </p>
@@ -456,7 +523,7 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* ─── Recent Transactions ─── */}
+        {/* ─── Achievements Showcase ─── */}
         <motion.div
           variants={itemVariants}
           initial="hidden"
@@ -466,114 +533,32 @@ export default function DashboardPage() {
         >
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-syne font-bold text-base text-text-primary">
-              Últimos movimientos
+              Logros e Insignias
             </h2>
             <button
-              onClick={() => router.push('/analytics')}
+              onClick={() => router.push('/goals')}
               className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
-              aria-label="Ver analytics"
+              aria-label="Ver todas las insignias"
             >
-              Analytics <BarChart3 size={14} aria-hidden="true" />
+              Ver todas <ArrowRight size={14} aria-hidden="true" />
             </button>
           </div>
 
-          <div className="space-y-2" role="list" aria-label="Transacciones recientes">
-            {isLoading
-              ? [...Array(5)].map((_, i) => (
-                  <SkeletonTransactionItem key={i} />
-                ))
-              : transactions.map((tx) => (
-                  <TransactionItem
-                    key={tx.id}
-                    transaction={tx}
-                    onDelete={handleDeleteTransaction}
-                  />
-                ))}
+          <div className="flex overflow-x-auto gap-4 scrollbar-none pb-2 pt-1 px-1">
+            {MOCK_ACHIEVEMENTS.map((achievement) => (
+              <div key={achievement.id} className="flex-shrink-0 w-20">
+                <AchievementBadge
+                  achievement={achievement}
+                  unlocked={!!achievement.unlockedAt}
+                  size="sm"
+                />
+              </div>
+            ))}
           </div>
         </motion.div>
+
+
       </div>
-
-      {/* ─── Panel de Notificaciones Deslizable ─── */}
-      <AnimatePresence>
-        {showNotifications && (
-          <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 backdrop-blur-xs p-4">
-            <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-              className="bg-surface w-full max-w-sm h-full max-h-[85vh] rounded-3xl border border-border shadow-2xl flex flex-col overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2">
-                <div>
-                  <h3 className="font-syne font-bold text-sm text-text-primary">Notificaciones</h3>
-                  {unreadCount > 0 && (
-                    <p className="font-dm text-xs text-primary">{unreadCount} pendientes</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowNotifications(false)}
-                  className="w-8 h-8 rounded-lg hover:bg-surface-3 flex items-center justify-center text-text-secondary transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto divide-y divide-border">
-                {notifications.length === 0 ? (
-                  <div className="text-center py-16 px-4">
-                    <p className="text-2xl mb-2">🔔</p>
-                    <p className="font-dm text-sm text-text-secondary">Sin notificaciones nuevas</p>
-                  </div>
-                ) : (
-                  notifications.map((notif) => {
-                    const typeEmojis = {
-                      budget_exceeded: '🚨',
-                      streak_at_risk: '🔥',
-                      goal_deadline: '🎯',
-                      reminder: '⏰',
-                      badge_earned: '🎉',
-                    };
-                    return (
-                      <button
-                        key={notif.id}
-                        onClick={() => !notif.read && handleMarkRead(notif.id)}
-                        className={`w-full p-4 hover:bg-surface-2 transition-colors text-left flex gap-3 items-start relative ${
-                          !notif.read ? 'bg-blue-50/20' : ''
-                        }`}
-                      >
-                        <span className="text-xl mt-0.5">{typeEmojis[notif.type] || '🔔'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-dm text-xs ${!notif.read ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
-                            {notif.title}
-                          </p>
-                          <p className="font-dm text-[11px] text-text-secondary mt-0.5 leading-snug">
-                            {notif.body}
-                          </p>
-                          <p className="font-dm text-[9px] text-text-secondary mt-1">
-                            {formatRelativeDate(notif.createdAt)}
-                          </p>
-                        </div>
-                        {!notif.read && (
-                          <span className="w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-
-              {unreadCount > 0 && (
-                <div className="p-4 border-t border-border bg-surface-2 flex gap-2">
-                  <Button fullWidth size="sm" variant="secondary" onClick={handleMarkAllRead}>
-                    Marcar todo leído
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </PageTransition>
   );
 }

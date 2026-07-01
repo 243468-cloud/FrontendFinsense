@@ -2,8 +2,9 @@
 // BottomNav — barra de navegación inferior con FAB central
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Receipt, Target, Users, Plus } from 'lucide-react';
+import { Home, BarChart3, Target, Users, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
 
 interface NavItem {
   id: string;
@@ -14,12 +15,13 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard',    label: 'Inicio',   icon: Home,    href: '/dashboard' },
-  { id: 'transactions', label: 'Gastos',   icon: Receipt, href: '/transactions/new' },
-  { id: 'fab',          label: 'Agregar',  icon: Plus,    href: '/transactions/new', isFAB: true },
-  { id: 'goals',        label: 'Metas',    icon: Target,  href: '/goals' },
-  { id: 'groups',       label: 'Grupos',   icon: Users,   href: '/groups' },
+  { id: 'dashboard',    label: 'Inicio',      icon: Home,       href: '/dashboard' },
+  { id: 'analytics',    label: 'Analíticas',  icon: BarChart3,  href: '/analytics' },
+  { id: 'fab',          label: 'Agregar',     icon: Plus,       href: '/transactions/new', isFAB: true },
+  { id: 'goals',        label: 'Metas',       icon: Target,     href: '/goals' },
+  { id: 'groups',       icon: Users,      label: 'Grupos',   href: '/groups' },
 ];
+
 
 export function BottomNav() {
   const pathname = usePathname();

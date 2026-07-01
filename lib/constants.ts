@@ -19,7 +19,7 @@ export const DEFAULT_PAGE_SIZE = 20;
 // PWA
 export const PWA_THEME_COLOR = '#0057FF';
 
-// Transaction categories
+// Transaction categories (Expenses)
 export const CATEGORIES = [
   { id: 'food',          label: 'Comida',         emoji: '🍽️', color: '#FF6B6B', bgColor: '#FFF0F0' },
   { id: 'transport',     label: 'Transporte',      emoji: '🚌', color: '#4ECDC4', bgColor: '#F0FAFA' },
@@ -29,6 +29,16 @@ export const CATEGORIES = [
   { id: 'health',       label: 'Salud',           emoji: '💊', color: '#00C896', bgColor: '#F0FFF9' },
   { id: 'clothing',     label: 'Ropa',            emoji: '👕', color: '#FF8C00', bgColor: '#FFF5F0' },
   { id: 'savings',      label: 'Ahorro',          emoji: '🏦', color: '#0057FF', bgColor: '#F0F5FF' },
+  { id: 'other',        label: 'Otro',            emoji: '📦', color: '#6B7280', bgColor: '#F5F5F5' },
+] as const;
+
+// Income categories
+export const INCOME_CATEGORIES = [
+  { id: 'salary',       label: 'Sueldo',          emoji: '💼', color: '#10B981', bgColor: '#F0FDF4' },
+  { id: 'allowance',    label: 'Mesada',          emoji: '💌', color: '#3B82F6', bgColor: '#EFF6FF' },
+  { id: 'scholarship',  label: 'Beca',            emoji: '🎓', color: '#8B5CF6', bgColor: '#F5F3FF' },
+  { id: 'freelance',    label: 'Negocio',         emoji: '🚀', color: '#F59E0B', bgColor: '#FFFBEB' },
+  { id: 'gift',         label: 'Regalo',          emoji: '🎁', color: '#EC4899', bgColor: '#FDF2F8' },
   { id: 'other',        label: 'Otro',            emoji: '📦', color: '#6B7280', bgColor: '#F5F5F5' },
 ] as const;
 

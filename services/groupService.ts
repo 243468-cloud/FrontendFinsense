@@ -167,3 +167,34 @@ export function calculateDebts(group: Group): DebtSummary[] {
 
   return debts;
 }
+
+export async function addGroupMember(groupId: string, memberName: string): Promise<Group> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 600));
+    const group = mockGroups.find((g) => g.id === groupId);
+    if (!group) throw new Error('Group not found');
+    const newMember = {
+      userId: `user_${Date.now()}`,
+      name: memberName,
+      balance: 0,
+    };
+    group.members = [...group.members, newMember];
+    group.lastActivity = new Date().toISOString();
+    return { ...group };
+  }
+  const { data } = await apiClient.post<Group>(`/groups/${groupId}/members`, { name: memberName });
+  return data;
+}
+
+export async function removeGroupMember(groupId: string, userId: string): Promise<Group> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    const group = mockGroups.find((g) => g.id === groupId);
+    if (!group) throw new Error('Group not found');
+    group.members = group.members.filter((m) => m.userId !== userId);
+    group.lastActivity = new Date().toISOString();
+    return { ...group };
+  }
+  const { data } = await apiClient.delete<Group>(`/groups/${groupId}/members/${userId}`);
+  return data;
+}

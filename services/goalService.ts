@@ -90,3 +90,30 @@ export async function deleteGoal(id: string): Promise<void> {
 
   await apiClient.delete(`/goals/${id}`);
 }
+
+export async function getGoal(id: string): Promise<Goal> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    const goal = mockGoals.find((g) => g.id === id);
+    if (!goal) throw new Error('Goal not found');
+    return goal;
+  }
+  const { data } = await apiClient.get<Goal>(`/goals/${id}`);
+  return data;
+}
+
+export async function updateGoal(id: string, dto: Partial<CreateGoalDTO>): Promise<Goal> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    mockGoals = mockGoals.map((g) => {
+      if (g.id !== id) return g;
+      return {
+        ...g,
+        ...dto,
+      };
+    });
+    return mockGoals.find((g) => g.id === id)!;
+  }
+  const { data } = await apiClient.put<Goal>(`/goals/${id}`, dto);
+  return data;
+}

@@ -33,7 +33,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-surface border-r border-border"
+      className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-[#0B1530] border-r border-white/10 text-white"
       aria-label="Menú principal"
     >
       {/* Logo */}
@@ -42,18 +42,7 @@ export function Sidebar() {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <span className="text-white font-syne font-bold text-sm">FS</span>
           </div>
-          <span className="font-syne font-bold text-xl text-text-primary">FinSense</span>
-        </Link>
-      </div>
-
-      {/* Add transaction CTA */}
-      <div className="px-4 pb-4">
-        <Link
-          href="/transactions/new"
-          className="flex items-center gap-2 w-full bg-gradient-to-r from-primary to-primary-light text-white rounded-xl px-4 py-2.5 font-dm font-semibold text-sm hover:shadow-blue-lg transition-all duration-200"
-        >
-          <Plus size={18} aria-hidden="true" />
-          Agregar transacción
+          <span className="font-syne font-bold text-xl text-white">FinSense</span>
         </Link>
       </div>
 
@@ -71,8 +60,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl font-dm font-medium text-sm transition-all duration-150 group',
                 isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
               )}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -91,7 +80,7 @@ export function Sidebar() {
               {isActive && (
                 <motion.div
                   layoutId="sidebar-indicator"
-                  className="ml-auto w-1.5 h-5 bg-primary rounded-full"
+                  className="ml-auto w-1.5 h-5 bg-accent rounded-full"
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}
@@ -102,22 +91,28 @@ export function Sidebar() {
 
       {/* User footer */}
       {user && (
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-sm flex-shrink-0">
-              {getInitials(user.name)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-dm font-semibold text-sm text-text-primary truncate">
-                {user.name}
-              </p>
-              <p className="font-dm text-xs text-text-secondary truncate">
-                Nv. {user.level} · {user.xp} XP
-              </p>
-            </div>
+            <Link
+              href="/profile"
+              className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-90 transition-opacity"
+              aria-label="Ver perfil"
+            >
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-sm flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <span className="text-xl leading-none">{user.avatar || '🦁'}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-dm font-semibold text-sm text-white truncate">
+                  {user.name}
+                </p>
+                <p className="font-dm text-xs text-white/60 truncate">
+                  Nv. {user.level} · {user.xp} XP
+                </p>
+              </div>
+            </Link>
             <button
               onClick={handleLogout}
-              className="text-text-secondary hover:text-red-500 transition-colors touch-target"
+              className="text-white/60 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 touch-target"
               aria-label="Cerrar sesión"
             >
               <LogOut size={18} />
