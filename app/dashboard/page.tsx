@@ -35,7 +35,7 @@ const PIE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFB800', '#A855F7', '#45B7D1'];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, preferences } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -87,11 +87,16 @@ export default function DashboardPage() {
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/profile" className="flex flex-col text-left group hover:opacity-90 transition-opacity cursor-pointer">
-            <p className="font-dm text-xs text-text-secondary group-hover:text-primary transition-colors">{greeting}</p>
-            <h1 className="font-syne font-bold text-lg text-text-primary group-hover:text-primary transition-colors">
-              {firstName} 👋
-            </h1>
+          <Link href="/profile" className="flex items-center gap-3 text-left group hover:opacity-90 transition-opacity cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-sm border border-primary/20 text-lg">
+              {user?.avatar || '👤'}
+            </div>
+            <div className="flex flex-col">
+              <p className="font-dm text-xs text-text-secondary group-hover:text-primary transition-colors">{greeting}</p>
+              <h1 className="font-syne font-bold text-lg text-text-primary group-hover:text-primary transition-colors leading-tight">
+                {firstName} 👋
+              </h1>
+            </div>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -146,9 +151,9 @@ export default function DashboardPage() {
            variants={itemVariants}
            initial="hidden"
            animate="visible"
-           className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white"
+           className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white transition-colors duration-500"
            style={{
-             background: 'linear-gradient(135deg, #0A1128 0%, #0057FF 100%)',
+             background: `linear-gradient(135deg, ${preferences?.themeColor || '#0A1128'} 0%, ${preferences?.themeColor === '#0A1128' ? '#0057FF' : (preferences?.themeColor || '#0A1128') + 'DD'} 100%)`,
              boxShadow: '0 8px 30px rgba(0, 87, 255, 0.15)',
            }}
          >
@@ -216,6 +221,24 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => router.push('/transactions/new?type=income')}
+                className="flex-1 py-2 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white rounded-xl font-dm font-semibold text-xs transition-all flex items-center justify-center gap-1.5 border border-white/5 shadow-sm"
+              >
+                <Plus size={14} />
+                <span>Agregar Ingreso</span>
+              </button>
+              <button
+                onClick={() => router.push('/transactions/new?type=expense')}
+                className="flex-1 py-2 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white rounded-xl font-dm font-semibold text-xs transition-all flex items-center justify-center gap-1.5 border border-white/5 shadow-sm"
+              >
+                <Plus size={14} />
+                <span>Registrar Gasto</span>
+              </button>
             </div>
 
             {/* Savings rate */}
@@ -311,10 +334,10 @@ export default function DashboardPage() {
           className="grid grid-cols-4 gap-4 sm:gap-6"
           aria-label="Acciones rápidas"
         >
-          {[{ icon: Receipt,   label: 'Gasto',    href: '/transactions/new?type=expense', color: '#FF6B6B', bg: '#FFF0F0' },
-            { icon: TrendingUp,label: 'Ingreso',  href: '/transactions/new?type=income', color: '#00C896', bg: '#F0FFF9' },
-            { icon: Target,   label: 'Metas',    href: '/goals',            color: '#0057FF', bg: '#F0F5FF' },
-            { icon: Users,    label: 'Grupos',   href: '/groups',           color: '#A855F7', bg: '#FAF0FF' },
+          {[{ icon: Receipt,   label: 'Historial', href: '/transactions',     color: '#FF6B6B', bg: '#FFF0F0' },
+            { icon: BarChart3, label: 'Analytics', href: '/analytics',        color: '#00C896', bg: '#F0FFF9' },
+            { icon: Target,    label: 'Metas',     href: '/goals',            color: '#0057FF', bg: '#F0F5FF' },
+            { icon: Users,     label: 'Grupos',    href: '/groups',           color: '#A855F7', bg: '#FAF0FF' },
           ].map((action) => {
             const Icon = action.icon;
             return (
@@ -534,41 +557,7 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* ─── Recent Transactions ─── */}
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="bg-surface rounded-2xl p-4 border border-border shadow-card"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-syne font-bold text-base text-text-primary">
-              Últimos movimientos
-            </h2>
-            <button
-              onClick={() => router.push('/transactions')}
-              className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
-              aria-label="Ver todas las transacciones"
-            >
-              Ver todo <ArrowRight size={14} aria-hidden="true" />
-            </button>
-          </div>
 
-          <div className="space-y-2" role="list" aria-label="Transacciones recientes">
-            {isLoading
-              ? [...Array(5)].map((_, i) => (
-                  <SkeletonTransactionItem key={i} />
-                ))
-              : transactions.map((tx) => (
-                  <TransactionItem
-                    key={tx.id}
-                    transaction={tx}
-                    onDelete={handleDeleteTransaction}
-                  />
-                ))}
-          </div>
-        </motion.div>
       </div>
     </PageTransition>
   );

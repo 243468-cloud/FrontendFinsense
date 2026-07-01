@@ -46,17 +46,6 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Add transaction CTA */}
-      <div className="px-4 pb-4">
-        <Link
-          href="/transactions/new"
-          className="flex items-center gap-2 w-full bg-gradient-to-r from-[#0057FF] to-[#00C2FF] text-white rounded-xl px-4 py-3 font-dm font-semibold text-sm shadow-blue-lg hover:shadow-[0_8px_30px_rgba(0,194,255,0.4)] transition-all duration-200 hover:-translate-y-0.5 justify-center"
-        >
-          <Plus size={18} aria-hidden="true" />
-          Agregar transacción
-        </Link>
-      </div>
-
       {/* Nav items */}
       <nav className="flex-1 px-3 space-y-0.5" aria-label="Secciones">
         {navItems.map((item) => {
@@ -110,7 +99,7 @@ export function Sidebar() {
               aria-label="Ver perfil"
             >
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-sm flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                {getInitials(user.name)}
+                <span className="text-xl leading-none">{user.avatar || '🦁'}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-dm font-semibold text-sm text-white truncate">

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Plus, Trophy, Clock } from 'lucide-react';
+import { Plus, Trophy, Clock, ArrowLeft } from 'lucide-react';
 import { PageTransition, containerVariants, itemVariants } from '@/components/layout/PageTransition';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { StreakCounter } from '@/components/ui/StreakCounter';
@@ -112,10 +112,19 @@ export default function GoalsPage() {
       <Confetti active={showConfetti} />
 
       {/* ─── Header ─── */}
-      <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-syne font-bold text-xl text-text-primary">Mis Metas</h1>
-          <p className="font-dm text-xs text-text-secondary">Progreso gamificado</p>
+      <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3.5 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="touch-target rounded-xl hover:bg-slate-100 dark:hover:bg-surface-3 transition-colors p-2"
+            aria-label="Volver al Dashboard"
+          >
+            <ArrowLeft size={22} className="text-text-primary" />
+          </button>
+          <div>
+            <h1 className="font-syne font-bold text-lg text-text-primary">Mis Metas</h1>
+            <p className="font-dm text-xs text-text-secondary">Progreso gamificado</p>
+          </div>
         </div>
         <button
           onClick={() => router.push('/goals/new')}

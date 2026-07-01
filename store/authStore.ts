@@ -5,6 +5,7 @@ import type { User } from '@/types/auth.types';
 
 export interface UserPreferences {
   theme: 'light' | 'dark';
+  themeColor: string;
   customTags: string[];
 }
 
@@ -17,11 +18,12 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   logout: () => void;
   updateUserPreferences: (prefs: Partial<UserPreferences>) => void;
-  updateUserProfile: (name: string, email: string, city: string) => void;
+  updateUserProfile: (name: string, email: string, city: string, avatar?: string) => void;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'light',
+  themeColor: '#0A1128',
   customTags: ['comida-uni', 'transporte-ruta', 'cafecito', 'fotocopias', 'salidas'],
 };
 
@@ -38,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
       updateUserPreferences: (prefs) => set((state) => ({
         preferences: { ...state.preferences, ...prefs }
       })),
-      updateUserProfile: (name, email, city) => set((state) => {
+      updateUserProfile: (name, email, city, avatar) => set((state) => {
         if (!state.user) return state;
         return {
           user: {
@@ -46,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
             name,
             email,
             city,
+            avatar: avatar !== undefined ? avatar : state.user.avatar,
           }
         };
       }),

@@ -46,7 +46,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             (rightIcon || type === 'password') && 'pr-11',
             error
               ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-              : 'border-border focus:border-primary focus:ring-2 focus:ring-primary/10',
+              : 'border-slate-300 dark:border-slate-600 focus:border-primary focus:ring-2 focus:ring-primary/10',
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           placeholder={label}

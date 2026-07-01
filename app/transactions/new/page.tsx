@@ -7,7 +7,7 @@ import { ArrowLeft, Check, Calendar, FileText, TrendingDown, TrendingUp, Loader2
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/store/uiStore';
 import { createTransaction } from '@/services/transactionService';
-import { CATEGORIES } from '@/lib/constants';
+import { CATEGORIES, INCOME_CATEGORIES } from '@/lib/constants';
 import { cn, getTodayISO, formatCurrency, getIconForEmoji } from '@/lib/utils';
 import type { CategoryId, TransactionType } from '@/types/transaction.types';
 
@@ -75,7 +75,7 @@ export default function NewTransactionPage() {
 
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('0');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryId>('food');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId | string>('food');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(getTodayISO());
   const [isLoading, setIsLoading] = useState(false);
@@ -117,7 +117,7 @@ export default function NewTransactionPage() {
       await createTransaction({
         type,
         amount: numAmount,
-        categoryId: selectedCategory,
+        categoryId: selectedCategory as CategoryId,
         note,
         date,
       });
@@ -168,7 +168,10 @@ export default function NewTransactionPage() {
                       ? 'text-white'
                       : 'text-text-secondary hover:text-text-primary'
                   )}
-                  onClick={() => setType(t)}
+                  onClick={() => {
+                    setType(t);
+                    setSelectedCategory(t === 'expense' ? 'food' : 'salary');
+                  }}
                 >
                   {isSelected && (
                     <motion.div
@@ -219,34 +222,32 @@ export default function NewTransactionPage() {
               role="radiogroup"
               aria-label="Categoría"
             >
-              {CATEGORIES.map((cat) => {
+              {(isExpense ? CATEGORIES : INCOME_CATEGORIES).map((cat) => {
                 const isSelected = selectedCategory === cat.id;
                 const Icon = getIconForEmoji(cat.emoji);
                 return (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setSelectedCategory(cat.id as CategoryId)}
+                    onClick={() => setSelectedCategory(cat.id)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all duration-200 justify-center text-center',
                       isSelected
                         ? isExpense
                           ? 'border-red-500 bg-red-50/70 text-red-600 ring-2 ring-red-500/10 font-bold'
-                          : 'border-success bg-green-50/70 text-success ring-2 ring-green-500/10 font-bold'
+                          : 'border-green-500 bg-green-50/70 text-green-700 ring-2 ring-green-500/10 font-bold'
                         : 'border-border bg-white text-text-secondary hover:bg-slate-50 hover:text-text-primary shadow-sm'
                     )}
                   >
                     <div
                       className={cn(
                         'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0',
-                        isSelected
-                          ? isExpense
-                            ? 'bg-red-500/10'
-                            : 'bg-success/10'
+                        isSelected 
+                          ? isExpense ? 'bg-red-500/10' : 'bg-green-500/10'
                           : 'bg-slate-100'
                       )}
                     >
-                      <Icon size={16} style={{ color: isSelected ? (isExpense ? '#FF3B5C' : '#00C896') : cat.color }} />
+                      <Icon size={16} style={{ color: isSelected ? (isExpense ? '#FF3B5C' : '#10B981') : cat.color }} />
                     </div>
                     <span className="font-dm text-[11px] font-semibold leading-tight">
                       {cat.label}

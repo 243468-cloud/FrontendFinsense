@@ -353,7 +353,11 @@ export default function GroupDetailPage({ params }: GroupDetailPageProps) {
               >
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-syne font-bold text-xs">
-                    {getInitials(member.name)}
+                    {member.avatar ? (
+                      <span className="text-sm leading-none">{member.avatar}</span>
+                    ) : (
+                      getInitials(member.name)
+                    )}
                   </div>
                   <div>
                     <p className="font-dm text-xs font-semibold text-text-primary">

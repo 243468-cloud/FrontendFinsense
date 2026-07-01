@@ -16,7 +16,9 @@ import {
   Award, 
   Flame, 
   Target, 
-  Tag
+  Tag,
+  Lock,
+  Palette
 } from 'lucide-react';
 import { PageTransition, containerVariants, itemVariants } from '@/components/layout/PageTransition';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -27,6 +29,20 @@ import { getInitials, cn } from '@/lib/utils';
 const CHIAPAS_CITIES = [
   'Tuxtla Gutiérrez',
   'Suchiapa'
+];
+
+const ANIMAL_AVATARS = [
+  '🦁', '🐯', '🐼', '🐨', '🦊', '🐻', '🐰', '🐹', '🐶', '🐱',
+  '🐷', '🐮', '🐸', '🐵', '🐔', '🐧', '🦉', '🦆', '🦖', '🐙',
+  '🐝', '🐢', '🐬', '🦦'
+];
+
+const COLOR_TEMPLATES = [
+  { id: 'blue', name: 'Azul', color: '#0A1128' },
+  { id: 'green', name: 'Esmeralda', color: '#064E3B' },
+  { id: 'purple', name: 'Morado', color: '#4C1D95' },
+  { id: 'rose', name: 'Carmín', color: '#831843' },
+  { id: 'slate', name: 'Carbón', color: '#1E293B' },
 ];
 
 export default function ProfilePage() {
@@ -51,6 +67,8 @@ export default function ProfilePage() {
   const [profileName, setProfileName] = useState(user?.name ?? '');
   const [profileEmail, setProfileEmail] = useState(user?.email ?? '');
   const [profileCity, setProfileCity] = useState(user?.city ?? 'Tuxtla Gutiérrez');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState(user?.avatar ?? '🦁');
 
   // Tag manager state
   const [newTag, setNewTag] = useState('');
@@ -85,7 +103,13 @@ export default function ProfilePage() {
       return;
     }
 
-    updateUserProfile(profileName.trim(), profileEmail.trim(), profileCity);
+    updateUserProfile(profileName.trim(), profileEmail.trim(), profileCity, profileAvatar);
+    
+    if (profilePassword.trim()) {
+      addToast({ message: 'Contraseña actualizada correctamente', type: 'success' });
+      setProfilePassword('');
+    }
+    
     addToast({ message: 'Perfil actualizado correctamente', type: 'success' });
   };
 
@@ -155,8 +179,12 @@ export default function ProfilePage() {
           {/* ─── Column Left (Sidebar) ─── */}
           <aside className="lg:col-span-4 bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card space-y-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#1A66FF] to-accent flex items-center justify-center text-white font-syne font-bold text-3xl shadow-blue-sm">
-                {getInitials(user.name)}
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#1A66FF] to-accent flex items-center justify-center text-white font-syne font-bold text-4xl shadow-blue-sm relative group overflow-hidden">
+                {profileAvatar ? (
+                  <span className="text-4xl leading-none">{profileAvatar}</span>
+                ) : (
+                  getInitials(user.name)
+                )}
               </div>
               <div className="space-y-1.5">
                 <h2 className="font-syne font-bold text-lg text-text-primary">{user.name}</h2>
@@ -188,7 +216,7 @@ export default function ProfilePage() {
 
             {/* Dark Mode switcher inside sidebar */}
             <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   {preferences.theme === 'dark' ? (
                     <Moon size={18} className="text-accent" />
@@ -216,6 +244,35 @@ export default function ProfilePage() {
                     }`}
                   />
                 </button>
+              </div>
+              
+              {/* Theme Color Picker */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Palette size={18} className="text-primary" />
+                  <div>
+                    <p className="font-syne font-semibold text-xs text-text-primary">Color de fondo</p>
+                    <p className="font-dm text-[10px] text-text-secondary">Personaliza tu dashboard</p>
+                  </div>
+                </div>
+                <div className="flex justify-between px-1">
+                  {COLOR_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => {
+                        updateUserPreferences({ themeColor: template.color });
+                        addToast({ message: `Color cambiado a ${template.name}`, type: 'success' });
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                        preferences.themeColor === template.color ? "border-primary scale-110" : "border-transparent shadow-sm"
+                      )}
+                      style={{ backgroundColor: template.color }}
+                      title={template.name}
+                      aria-label={`Seleccionar color ${template.name}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </aside>
@@ -248,7 +305,35 @@ export default function ProfilePage() {
             {/* Bloque Medio: Datos Personales Form */}
             <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
               <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-4">Datos personales</h3>
-              <form onSubmit={handleSaveProfile} className="flex flex-col space-y-4">
+              <form onSubmit={handleSaveProfile} className="flex flex-col space-y-5">
+                
+                {/* Animal Avatar Selector */}
+                <div className="space-y-2">
+                  <label className="font-syne font-semibold text-xs text-text-primary pl-1">
+                    Icono de perfil (Animales)
+                  </label>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-slate-50 dark:bg-surface-2 p-3 rounded-2xl border border-border max-h-36 overflow-y-auto shadow-inner">
+                    {ANIMAL_AVATARS.map((emoji) => {
+                      const isSelected = profileAvatar === emoji;
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setProfileAvatar(emoji)}
+                          className={cn(
+                            'h-10 w-10 text-xl rounded-xl flex items-center justify-center transition-all duration-200',
+                            isSelected
+                              ? 'bg-primary text-white scale-110 shadow-blue-sm'
+                              : 'bg-white dark:bg-surface hover:bg-slate-100 dark:hover:bg-surface-3 text-text-primary border border-border'
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nombre completo</label>
@@ -279,25 +364,41 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-syne font-semibold text-xs text-text-primary pl-1">Municipio de Chiapas</label>
-                  <div className="relative">
-                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                    <select
-                      value={profileCity}
-                      onChange={(e) => setProfileCity(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all appearance-none shadow-sm cursor-pointer"
-                    >
-                      {CHIAPAS_CITIES.map((city) => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                    </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Municipio de Chiapas</label>
+                    <div className="relative">
+                      <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <select
+                        value={profileCity}
+                        onChange={(e) => setProfileCity(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all appearance-none shadow-sm cursor-pointer"
+                      >
+                        {CHIAPAS_CITIES.map((city) => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nueva contraseña (dejar vacío para mantener la actual)</label>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                      <input
+                        type="password"
+                        value={profilePassword}
+                        onChange={(e) => setProfilePassword(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
+                        placeholder="••••••••"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-3 bg-[#1A66FF] hover:bg-[#0047D4] text-white font-dm font-bold text-sm rounded-xl transition-colors shadow-blue-sm self-end"
+                  className="w-full sm:w-auto px-6 py-3 bg-[#1A66FF] hover:bg-[#0047D4] text-white font-dm font-bold text-sm rounded-xl transition-colors shadow-blue-sm self-end animate-pulse-subtle"
                 >
                   Guardar cambios
                 </button>

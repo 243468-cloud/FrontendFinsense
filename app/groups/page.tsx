@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Users, ArrowRight, ChevronRight } from 'lucide-react';
+import { Plus, Users, ArrowRight, ChevronRight, ArrowLeft } from 'lucide-react';
 import { PageTransition, containerVariants, itemVariants } from '@/components/layout/PageTransition';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +28,11 @@ function StackedAvatars({ members, max = 3 }: { members: Group['members']; max?:
           title={member.name}
           aria-label={member.name}
         >
-          {getInitials(member.name)}
+          {member.avatar ? (
+            <span className="text-sm leading-none">{member.avatar}</span>
+          ) : (
+            getInitials(member.name)
+          )}
         </div>
       ))}
       {remaining > 0 && (
@@ -179,10 +183,19 @@ export default function GroupsPage() {
   return (
     <PageTransition className="min-h-screen bg-surface-2">
       {/* ─── Header ─── */}
-      <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-syne font-bold text-xl text-text-primary">Grupos</h1>
-          <p className="font-dm text-xs text-text-secondary">Gastos colaborativos</p>
+      <header className="sticky top-0 z-20 bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3.5 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="touch-target rounded-xl hover:bg-slate-100 dark:hover:bg-surface-3 transition-colors p-2"
+            aria-label="Volver al Dashboard"
+          >
+            <ArrowLeft size={22} className="text-text-primary" />
+          </button>
+          <div>
+            <h1 className="font-syne font-bold text-lg text-text-primary">Grupos</h1>
+            <p className="font-dm text-xs text-text-secondary">Gastos colaborativos</p>
+          </div>
         </div>
         <button
           onClick={() => router.push('/groups/new')}
