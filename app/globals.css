@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 /* ─── CSS Custom Properties ─── */
 :root {
   --color-primary: #0057FF;
@@ -38,15 +48,49 @@
 }
 
 .dark {
-  --color-surface: #0E1428;
-  --color-surface-2: #161D3A;
-  --color-surface-3: #1F2850;
-  --color-text-primary: #F0F4FF;
-  --color-text-secondary: #8B9BB4;
-  --color-border: rgba(0, 87, 255, 0.25);
-  background-color: #0E1428;
+  --color-primary: #4790FF; /* Brighter blue for better contrast */
+  --color-primary-light: #73AAFF;
+  --color-primary-dark: #206FFF;
+  --color-accent: #00E5FF; /* Vibrant cyan */
+  --color-surface: #080D1A;
+  --color-surface-2: #11182B;
+  --color-surface-3: #1A243D;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #C3D0E8; /* Lighter secondary text so it doesn't get lost */
+  --color-border: rgba(255, 255, 255, 0.1); /* Subtle bright border instead of dark blue */
+  background-color: var(--color-surface);
 }
 
+.dark h1, .dark h2, .dark h3, .dark h4, .dark .display, .dark .numeric {
+  text-shadow: 0 4px 24px rgba(0, 194, 255, 0.35);
+}
+
+.dark svg {
+  filter: drop-shadow(0 0 10px rgba(0, 194, 255, 0.3));
+}
+
+/* ─── Financial Health Themes ─── */
+body.theme-warning {
+  --color-primary: var(--color-warning);
+  --color-primary-light: #FFC933;
+  --color-primary-dark: #CC9300;
+  --shadow-card: 0 4px 24px rgba(255, 184, 0, 0.15);
+  --shadow-card-hover: 0 8px 32px rgba(255, 184, 0, 0.25);
+  --shadow-blue-sm: 0 2px 8px rgba(255, 184, 0, 0.20);
+  --shadow-blue-lg: 0 8px 40px rgba(255, 184, 0, 0.30);
+  --color-border: rgba(255, 184, 0, 0.25);
+}
+
+body.theme-critical {
+  --color-primary: var(--color-error);
+  --color-primary-light: #FF6B8B;
+  --color-primary-dark: #CC2F4A;
+  --shadow-card: 0 4px 24px rgba(255, 59, 92, 0.15);
+  --shadow-card-hover: 0 8px 32px rgba(255, 59, 92, 0.25);
+  --shadow-blue-sm: 0 2px 8px rgba(255, 59, 92, 0.20);
+  --shadow-blue-lg: 0 8px 40px rgba(255, 59, 92, 0.30);
+  --color-border: rgba(255, 59, 92, 0.25);
+}
 
 /* ─── Base Reset ─── */
 *,
@@ -143,12 +187,27 @@ h1, h2, h3, h4, h5, h6 {
 .gradient-primary {
   background: linear-gradient(135deg, #0057FF 0%, #00C2FF 100%);
 }
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+}
 .gradient-dark {
   background: linear-gradient(135deg, #003DB5 0%, #0057FF 100%);
 }
 .gradient-surface {
   background: linear-gradient(135deg, #FFFFFF 0%, #F0F5FF 100%);
 }
+
+/* ─── Success opacity helpers (used instead of emerald/green Tailwind classes) ─── */
+.bg-success\/10 { background-color: color-mix(in srgb, var(--color-success) 10%, transparent); }
+.bg-success\/15 { background-color: color-mix(in srgb, var(--color-success) 15%, transparent); }
+.bg-success\/20 { background-color: color-mix(in srgb, var(--color-success) 20%, transparent); }
+.bg-success\/30 { background-color: color-mix(in srgb, var(--color-success) 30%, transparent); }
+.text-success\/70 { color: color-mix(in srgb, var(--color-success) 70%, transparent); }
+.border-success\/20 { border-color: color-mix(in srgb, var(--color-success) 20%, transparent); }
+.border-success\/30 { border-color: color-mix(in srgb, var(--color-success) 30%, transparent); }
+.ring-success\/10 { --tw-ring-color: color-mix(in srgb, var(--color-success) 10%, transparent); }
+.dark .dark\:bg-success\/15 { background-color: color-mix(in srgb, var(--color-success) 15%, transparent); }
+.dark .dark\:bg-success\/10 { background-color: color-mix(in srgb, var(--color-success) 10%, transparent); }
 
 /* ─── Card Base ─── */
 .card {
@@ -269,4 +328,39 @@ h1, h2, h3, h4, h5, h6 {
 }
 .scroll-x-hidden::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── CSS Print Optimization ─── */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #0A0F1E !important;
+  }
+  
+  /* Hide unnecessary items like buttons, chats, toast messages, and navigation */
+  button,
+  .print-hide,
+  iframe,
+  #toast-container,
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Prevent page-breaks inside charts or important cards */
+  .bg-surface,
+  .card,
+  section,
+  .shadow-card {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    background-color: #ffffff !important;
+  }
+
+  /* Force background colors to print on browsers (Webkit/Firefox) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }

@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Calendar, FileText, TrendingDown, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Calendar, FileText, TrendingDown, TrendingUp, Loader2, Camera, ScanLine, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/store/uiStore';
 import { createTransaction } from '@/services/transactionService';
+import { useAuthStore } from '@/store/authStore';
 import { CATEGORIES, INCOME_CATEGORIES } from '@/lib/constants';
-import { cn, getTodayISO, formatCurrency, getIconForEmoji } from '@/lib/utils';
+import { cn, getTodayISO, formatCurrency, getIconForEmoji, getMinDateISO } from '@/lib/utils';
 import type { CategoryId, TransactionType } from '@/types/transaction.types';
+import { VoiceRecorderModal } from '@/components/transactions/VoiceRecorderModal';
 
 // Refined numeric keypad with tactile depth
 function NumericKeypad({
@@ -25,7 +27,7 @@ function NumericKeypad({
         <motion.button
           key={key}
           type="button"
-          className="h-14 rounded-3xl bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 font-mono font-bold text-xl text-text-primary hover:bg-slate-50 transition-all duration-75 shadow-sm flex items-center justify-center"
+          className="h-14 rounded-3xl bg-surface border-b-4 border-border active:border-b-0 active:translate-y-1 font-mono font-bold text-xl text-text-primary hover:bg-surface-2 transition-all duration-75 shadow-sm flex items-center justify-center"
           onClick={() => onKey(key)}
           whileTap={{ scale: 0.96 }}
           aria-label={key === '⌫' ? 'Borrar' : key}
@@ -72,6 +74,7 @@ function SuccessAnimation({ onDone }: { onDone: () => void }) {
 export default function NewTransactionPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
+  const { updateUserStats, user } = useAuthStore();
 
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('0');
@@ -80,6 +83,8 @@ export default function NewTransactionPage() {
   const [date, setDate] = useState(getTodayISO());
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -88,8 +93,48 @@ export default function NewTransactionPage() {
       if (t === 'income' || t === 'expense') {
         setType(t);
       }
+      if (params.get('voice') === 'true') {
+        startListening();
+      }
     }
   }, []);
+
+  function startListening() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      addToast({ message: 'Tu navegador no soporta reconocimiento de voz', type: 'error' });
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-MX';
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+      setShowVoiceModal(true);
+      setNote(''); // Clear previous note to show only new transcript
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      
+      const matchAmount = transcript.match(/(\d+(\.\d+)?)/);
+      if (matchAmount) setAmount(matchAmount[0]);
+
+      if (transcript.includes('ingreso') || transcript.includes('gané') || transcript.includes('recibí')) {
+        setType('income');
+      } else {
+        setType('expense');
+      }
+
+      setNote(transcript);
+      addToast({ message: `Voz: "${transcript}"`, type: 'success' });
+    };
+
+    recognition.start();
+  }
 
   function handleKey(key: string) {
     if (key === '⌫') {
@@ -112,15 +157,23 @@ export default function NewTransactionPage() {
       return;
     }
 
+    if (date < getTodayISO()) {
+      addToast({ message: 'La fecha no puede ser en el pasado', type: 'error' });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await createTransaction({
+      const res = await createTransaction({
         type,
         amount: numAmount,
         categoryId: selectedCategory as CategoryId,
         note,
         date,
       });
+      if (res.streakResult && user) {
+        updateUserStats(res.streakResult.currentStreak, user.level, res.streakResult.longestStreak);
+      }
       setShowSuccess(true);
     } catch {
       addToast({ message: 'Error al guardar', type: 'error' });
@@ -131,12 +184,12 @@ export default function NewTransactionPage() {
   const isExpense = type === 'expense';
 
   return (
-    <div className="min-h-screen bg-[#F0F5FF] flex flex-col text-text-primary">
+    <div className="min-h-screen bg-surface flex flex-col text-text-primary">
       {/* ─── Header ─── */}
-      <header className="relative flex items-center justify-center px-4 py-4 bg-white border-b border-border">
+      <header className="relative flex items-center justify-between px-4 py-4 bg-surface border-b border-border">
         <button
           onClick={() => router.back()}
-          className="absolute left-4 touch-target rounded-xl hover:bg-slate-100 transition-colors p-2"
+          className="touch-target rounded-xl hover:bg-surface-2 transition-colors p-2"
           aria-label="Volver"
         >
           <ArrowLeft size={22} className="text-text-primary" />
@@ -144,13 +197,20 @@ export default function NewTransactionPage() {
         <h1 className="font-syne font-bold text-lg text-text-primary text-center">
           Nueva transacción
         </h1>
+        <button
+          onClick={startListening}
+          className={cn("p-2 rounded-xl transition-colors", isListening ? "bg-red-500 text-white animate-pulse" : "text-purple-500 bg-purple-50 hover:bg-purple-100")}
+          aria-label="Voz"
+        >
+          <Mic size={22} />
+        </button>
       </header>
 
       <div className="flex-1 flex flex-col max-w-md mx-auto w-full p-4 space-y-5 pb-8 justify-between">
         <div className="space-y-4">
           {/* ─── Type Toggle ─── */}
           <div
-            className="flex bg-slate-100 rounded-full p-1 border border-slate-200"
+            className="flex bg-surface-3 rounded-full p-1 border border-border"
             role="radiogroup"
             aria-label="Tipo de transacción"
           >
@@ -235,16 +295,16 @@ export default function NewTransactionPage() {
                       isSelected
                         ? isExpense
                           ? 'border-red-500 bg-red-50/70 text-red-600 ring-2 ring-red-500/10 font-bold'
-                          : 'border-green-500 bg-green-50/70 text-green-700 ring-2 ring-green-500/10 font-bold'
-                        : 'border-border bg-white text-text-secondary hover:bg-slate-50 hover:text-text-primary shadow-sm'
+                          : 'border-success bg-success/10/70 text-success ring-2 ring-success/10 font-bold'
+                        : 'border-border bg-surface text-text-secondary hover:bg-surface-2 hover:text-text-primary shadow-sm'
                     )}
                   >
                     <div
                       className={cn(
                         'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0',
                         isSelected 
-                          ? isExpense ? 'bg-red-500/10' : 'bg-green-500/10'
-                          : 'bg-slate-100'
+                          ? isExpense ? 'bg-red-500/10' : 'bg-success/10'
+                          : 'bg-surface-3'
                       )}
                     >
                       <Icon size={16} style={{ color: isSelected ? (isExpense ? '#FF3B5C' : '#10B981') : cat.color }} />
@@ -270,7 +330,7 @@ export default function NewTransactionPage() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Nota (opcional)"
-              className="w-full pl-11 pr-4 py-3.5 bg-white border border-border rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3.5 bg-surface border border-border rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               aria-label="Nota de la transacción"
             />
           </div>
@@ -286,7 +346,8 @@ export default function NewTransactionPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 bg-white border border-border rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+              min={getTodayISO()}
+              className="w-full pl-11 pr-4 py-3.5 bg-surface border border-border rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               aria-label="Fecha de la transacción"
             />
           </div>
@@ -324,6 +385,17 @@ export default function NewTransactionPage() {
           <SuccessAnimation onDone={() => router.push('/dashboard')} />
         )}
       </AnimatePresence>
+
+      <VoiceRecorderModal
+        isOpen={showVoiceModal}
+        isListening={isListening}
+        transcript={note} // Use note state to temporarily hold the transcript
+        onClose={() => setShowVoiceModal(false)}
+        onStop={() => {
+          setIsListening(false);
+          // If we had a reference to recognition we would call recognition.stop() here
+        }}
+      />
     </div>
   );
 }

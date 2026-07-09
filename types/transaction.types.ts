@@ -10,6 +10,10 @@ export type CategoryId =
   | 'health'
   | 'clothing'
   | 'savings'
+  | 'colectivo'
+  | 'pozol'
+  | 'copias'
+  | 'renta'
   | 'other';
 
 export interface Category {
@@ -49,6 +53,7 @@ export interface TransactionFilters {
   groupId?: string;
   limit?: number;
   offset?: number;
+  q?: string;
 }
 
 export interface TransactionSummary {

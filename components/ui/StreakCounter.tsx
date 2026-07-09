@@ -2,6 +2,7 @@
 // StreakCounter — contador de racha con ícono de fuego animado
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Flame } from 'lucide-react';
 
 interface StreakCounterProps {
   days: number;
@@ -25,20 +26,20 @@ export function StreakCounter({ days, size = 'md', className }: StreakCounterPro
     >
       <motion.span
         className={cn('select-none', sizes.emoji)}
-        animate={{
+        animate={days > 0 ? {
           scale: [1, 1.2, 1],
           rotate: [-5, 5, -5, 0],
-        }}
-        transition={{
+        } : { scale: 1, rotate: 0 }}
+        transition={days > 0 ? {
           duration: 1.5,
           repeat: Infinity,
           repeatDelay: 2,
           ease: 'easeInOut',
-        }}
+        } : {}}
         role="img"
         aria-label="Fuego"
       >
-        🔥
+        <Flame size={24} className={days === 0 ? "text-gray-400" : "text-orange-500"} />
       </motion.span>
 
       <div className="flex flex-col leading-tight">

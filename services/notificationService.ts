@@ -1,74 +1,50 @@
 // FinSense — Notification Service (SOA)
+import apiClient from '@/lib/apiClient';
 
 export interface AppNotification {
   id: string;
-  type: 'budget' | 'reminder' | 'system' | 'streak';
+  type: 'budget' | 'reminder' | 'system' | 'streak' | 'group_invite';
   title: string;
   message: string;
   read: boolean;
   date: string;
 }
 
-const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif_1',
-    type: 'budget',
-    title: 'Límite de presupuesto alcanzado',
-    message: '¡Cuidado! Tus gastos en "Comida" han alcanzado el 90% de tu límite establecido para este mes.',
-    read: false,
-    date: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-  },
-  {
-    id: 'notif_2',
-    type: 'streak',
-    title: '¡Racha en peligro! 🔥',
-    message: 'Aún no has registrado transacciones hoy. Registra un gasto o ingreso para no perder tu racha de 5 días.',
-    read: false,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
-  },
-  {
-    id: 'notif_3',
-    type: 'system',
-    title: 'Meta al 50% completada 🎯',
-    message: '¡Buen ritmo! Tu meta "Laptop de Estudio" ha cruzado la mitad de su importe objetivo.',
-    read: true,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-  },
-  {
-    id: 'notif_4',
-    type: 'reminder',
-    title: 'Fin de semana cerca 🚌',
-    message: 'Recuerda registrar tus gastos de transporte de esta semana para mantener tus estadísticas de Tuxtla al día.',
-    read: true,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
-  }
-];
+function mapNotification(n: any): AppNotification {
+  let mappedType: AppNotification['type'] = 'system';
+  if (n.type === 'budget_exceeded') mappedType = 'budget';
+  else if (n.type === 'reminder') mappedType = 'reminder';
+  else if (n.type === 'streak_at_risk') mappedType = 'streak';
+  else if (n.type === 'group_invite') mappedType = 'group_invite';
 
-let mockNotifications = [...MOCK_NOTIFICATIONS];
+  return {
+    id: n.id,
+    type: mappedType,
+    title: n.title,
+    message: n.body || n.message || '',
+    read: n.read,
+    date: n.createdAt || n.date || new Date().toISOString(),
+  };
+}
 
 export async function getNotifications(): Promise<AppNotification[]> {
-  await new Promise((r) => setTimeout(r, 400));
-  return [...mockNotifications];
+  const { data } = await apiClient.get<any[]>('/notifications');
+  return (data ?? []).map(mapNotification);
 }
 
 export async function markAsRead(id: string): Promise<AppNotification[]> {
-  await new Promise((r) => setTimeout(r, 200));
-  mockNotifications = mockNotifications.map((n) =>
-    n.id === id ? { ...n, read: true } : n
-  );
-  return [...mockNotifications];
+  await apiClient.patch(`/notifications/${id}/read`);
+  return getNotifications();
 }
 
 export async function markAllAsRead(): Promise<AppNotification[]> {
-  await new Promise((r) => setTimeout(r, 300));
-  mockNotifications = mockNotifications.map((n) => ({ ...n, read: true }));
-  return [...mockNotifications];
+  await apiClient.patch('/notifications/read-all');
+  return getNotifications();
 }
 
 export async function deleteNotification(id: string): Promise<AppNotification[]> {
-  await new Promise((r) => setTimeout(r, 200));
-  mockNotifications = mockNotifications.filter((n) => n.id !== id);
-  return [...mockNotifications];
+  await apiClient.delete(`/notifications/${id}`);
+  return getNotifications();
 }
 
 export async function createNotification(
@@ -76,14 +52,11 @@ export async function createNotification(
   title: string,
   message: string
 ): Promise<AppNotification> {
-  const newNotif: AppNotification = {
-    id: `notif_${Date.now()}`,
-    type,
+  const backendType = type === 'budget' ? 'budget_exceeded' : 'reminder';
+  const { data } = await apiClient.post<any>('/notifications', {
+    type: backendType,
     title,
-    message,
-    read: false,
-    date: new Date().toISOString(),
-  };
-  mockNotifications = [newNotif, ...mockNotifications];
-  return newNotif;
+    body: message,
+  });
+  return mapNotification(data);
 }

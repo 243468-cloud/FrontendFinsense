@@ -23,8 +23,12 @@ export interface User {
   email: string;
   avatar?: string;
   city: string;
+  occupation?: string;
+  monthlyIncome?: number;
+  birthDate?: string;
   level: number;
   xp: number;
+  coins: number;
   xpToNextLevel: number;
   streakDays: number;
   maxStreak: number;

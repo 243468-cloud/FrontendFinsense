@@ -1,4 +1,5 @@
 // FinSense — Utility Functions
+import React, { createElement } from 'react';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
@@ -7,7 +8,8 @@ import {
   Target, Flame, Star, Trophy, Wallet, BarChart3, Users, 
   Utensils, Bus, BookOpen, Gamepad2, Zap, Activity, Shirt, 
   Landmark, Package, Home, Pizza, Car, Laptop, Film, 
-  GraduationCap, Ticket, ShoppingBag, HelpCircle 
+  GraduationCap, Ticket, ShoppingBag, HelpCircle,
+  Plane, Briefcase, PartyPopper, Gift, Heart, Coffee 
 } from 'lucide-react';
 
 
@@ -54,7 +56,14 @@ export function formatRelativeDate(dateString: string): string {
 }
 
 export function getTodayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().split('T')[0];
+}
+
+export function getMinDateISO(): string {
+  const lastYear = new Date().getFullYear() - 1;
+  return `${lastYear}-01-01`;
 }
 
 // ─── Greeting based on time ───
@@ -208,9 +217,33 @@ const EMOJI_ICON_MAP: Record<string, React.ComponentType<any>> = {
   '🎓': GraduationCap,
   '🎟️': Ticket,
   '🎒': ShoppingBag,
+  '✈️': Plane,
+  '💼': Briefcase,
+  '🎉': PartyPopper,
+  '🎁': Gift,
+  '❤️': Heart,
+  '☕': Coffee,
 };
 
 export function getIconForEmoji(emoji: string): React.ComponentType<any> {
-  return EMOJI_ICON_MAP[emoji] || HelpCircle;
+  if (EMOJI_ICON_MAP[emoji]) {
+    return EMOJI_ICON_MAP[emoji];
+  }
+  
+  // Si no hay un ícono de Lucide mapeado, retornamos un componente que renderiza el emoji real
+  return function EmojiIcon({ size = 24, className = '', style = {} }: any) {
+    return createElement('span', {
+      className,
+      style: {
+        ...style,
+        fontSize: typeof size === 'number' ? `${size * 0.8}px` : size,
+        lineHeight: 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      },
+      'aria-hidden': 'true'
+    }, emoji || '✨');
+  };
 }
 

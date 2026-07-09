@@ -19,6 +19,7 @@ export const MOCK_USER: User = {
   maxStreak: 14,
   monthsActive: 3,
   goalsCompleted: 2,
+  coins: 150,
   createdAt: '2024-02-15T10:00:00Z',
   badges: '[]',
 };
@@ -160,6 +161,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '🎯',
     xpReward: 50,
     unlockedAt: '2024-02-16T10:00:00Z',
+    color: '#FF6B6B',
   },
   {
     id: 'week_streak',
@@ -168,6 +170,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '🔥',
     xpReward: 100,
     unlockedAt: '2024-02-22T10:00:00Z',
+    color: '#FF9F43',
   },
   {
     id: 'first_goal',
@@ -176,6 +179,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '⭐',
     xpReward: 75,
     unlockedAt: '2024-03-01T10:00:00Z',
+    color: '#FDCB6E',
   },
   {
     id: 'goal_complete',
@@ -184,6 +188,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '🏆',
     xpReward: 200,
     unlockedAt: '2024-04-28T15:30:00Z',
+    color: '#10AC84',
   },
   {
     id: 'saver_100',
@@ -192,6 +197,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '💰',
     xpReward: 50,
     unlockedAt: '2024-03-31T23:59:00Z',
+    color: '#54A0FF',
   },
   {
     id: 'budget_master',
@@ -200,6 +206,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '📊',
     xpReward: 300,
     unlockedAt: undefined,
+    color: '#9B59B6',
   },
   {
     id: 'social_spender',
@@ -208,6 +215,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '🤝',
     xpReward: 75,
     unlockedAt: undefined,
+    color: '#E15F41',
   },
   {
     id: 'tuxtla_local',
@@ -216,6 +224,7 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     emoji: '🌮',
     xpReward: 150,
     unlockedAt: undefined,
+    color: '#00C2FF',
   },
 ];
 

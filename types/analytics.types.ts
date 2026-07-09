@@ -7,6 +7,7 @@ export interface Summary {
   totalExpenses: number;
   balance: number;
   savingsRate: number;
+  dailyAverage?: number;
   topCategories: CategoryStat[];
   dailyData: DailyData[];
   weeklyData: WeeklyData[];

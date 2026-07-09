@@ -4,32 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, 
-  User, 
-  Mail, 
-  MapPin, 
-  Moon, 
-  Sun, 
-  Plus, 
-  X, 
-  LogOut, 
-  Award, 
-  Flame, 
-  Target, 
-  Tag,
-  Lock,
-  Palette
+  ArrowLeft, User, Mail, MapPin, Moon, Sun, LogOut, 
+  Tag, Lock, Palette, Briefcase, Calendar, DollarSign,
+  Bell, EyeOff, Download, Trash2, ChevronRight, Check, Sparkles
 } from 'lucide-react';
-import { PageTransition, containerVariants, itemVariants } from '@/components/layout/PageTransition';
-import { ProgressBar } from '@/components/ui/ProgressBar';
+import { PageTransition } from '@/components/layout/PageTransition';
+import SpendingHeatmap from '@/components/analytics/SpendingHeatmap';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { getInitials, cn } from '@/lib/utils';
+import { getInitials, cn, getTodayISO } from '@/lib/utils';
+import { ExportModal } from '@/components/ui/ExportModal';
 
-const CHIAPAS_CITIES = [
-  'Tuxtla Gutiérrez',
-  'Suchiapa'
-];
+const CHIAPAS_CITIES = ['Tuxtla Gutiérrez', 'Suchiapa', 'San Cristóbal', 'Comitán', 'Tapachula'];
 
 const ANIMAL_AVATARS = [
   '🦁', '🐯', '🐼', '🐨', '🦊', '🐻', '🐰', '🐹', '🐶', '🐱',
@@ -45,9 +31,16 @@ const COLOR_TEMPLATES = [
   { id: 'slate', name: 'Carbón', color: '#1E293B' },
 ];
 
+const TABS = [
+  { id: 'personal', label: 'Personal', icon: User },
+  { id: 'preferences', label: 'Apariencia', icon: Palette },
+  { id: 'notifications', label: 'Notificaciones', icon: Bell },
+  { id: 'security', label: 'Privacidad', icon: Lock },
+];
+
 export default function ProfilePage() {
   const router = useRouter();
-  const { addToast } = useUIStore();
+  const { addToast, setHasSeenTour, setTourStepIndex } = useUIStore();
   const { 
     user, 
     preferences, 
@@ -56,35 +49,38 @@ export default function ProfilePage() {
     logout 
   } = useAuthStore();
 
-  // Redirect if not authenticated
   useEffect(() => {
-    if (!user) {
-      router.push('/auth');
-    }
+    if (!user) router.push('/auth');
   }, [user, router]);
 
-  // Profile forms state
+  const [activeTab, setActiveTab] = useState('personal');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Form states
   const [profileName, setProfileName] = useState(user?.name ?? '');
   const [profileEmail, setProfileEmail] = useState(user?.email ?? '');
   const [profileCity, setProfileCity] = useState(user?.city ?? 'Tuxtla Gutiérrez');
-  const [profilePassword, setProfilePassword] = useState('');
   const [profileAvatar, setProfileAvatar] = useState(user?.avatar ?? '🦁');
-
-  // Tag manager state
+  const [profileOccupation, setProfileOccupation] = useState(user?.occupation ?? '');
+  const [profileIncome, setProfileIncome] = useState(user?.monthlyIncome?.toString() ?? '');
+  const [profileBirth, setProfileBirth] = useState(user?.birthDate ?? '');
   const [newTag, setNewTag] = useState('');
 
-  // Preference change handler
+  // Notifications state (local until saved)
+  const [notiBudgets, setNotiBudgets] = useState(preferences?.notifications?.budgets ?? true);
+  const [notiSubs, setNotiSubs] = useState(preferences?.notifications?.subscriptions ?? true);
+  const [notiGame, setNotiGame] = useState(preferences?.notifications?.gamification ?? true);
+
+  // Privacy state
+  const [hideBalances, setHideBalances] = useState(preferences?.privacy?.hideBalances ?? false);
+
   const toggleDarkMode = () => {
     const nextTheme = preferences.theme === 'light' ? 'dark' : 'light';
     updateUserPreferences({ theme: nextTheme });
-    addToast({ 
-      message: `Modo ${nextTheme === 'dark' ? 'oscuro' : 'claro'} activado`, 
-      type: 'success' 
-    });
+    addToast({ message: `Modo ${nextTheme === 'dark' ? 'oscuro' : 'claro'} activado`, type: 'success' });
   };
 
   useEffect(() => {
-    // Apply class to html
     if (preferences.theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -94,22 +90,25 @@ export default function ProfilePage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profileName.trim()) {
-      addToast({ message: 'El nombre no puede estar vacío', type: 'warning' });
+    if (!profileName.trim() || !profileEmail.trim()) {
+      addToast({ message: 'Nombre y correo son obligatorios', type: 'warning' });
       return;
     }
-    if (!profileEmail.trim() || !profileEmail.includes('@')) {
-      addToast({ message: 'Introduce un correo válido', type: 'warning' });
-      return;
-    }
+    updateUserProfile({
+      name: profileName.trim(),
+      email: profileEmail.trim(),
+      city: profileCity,
+      avatar: profileAvatar,
+      occupation: profileOccupation.trim(),
+      monthlyIncome: profileIncome ? parseFloat(profileIncome) : undefined,
+      birthDate: profileBirth
+    });
+    
+    updateUserPreferences({
+      notifications: { budgets: notiBudgets, subscriptions: notiSubs, gamification: notiGame },
+      privacy: { hideBalances }
+    });
 
-    updateUserProfile(profileName.trim(), profileEmail.trim(), profileCity, profileAvatar);
-    
-    if (profilePassword.trim()) {
-      addToast({ message: 'Contraseña actualizada correctamente', type: 'success' });
-      setProfilePassword('');
-    }
-    
     addToast({ message: 'Perfil actualizado correctamente', type: 'success' });
   };
 
@@ -121,346 +120,333 @@ export default function ProfilePage() {
       addToast({ message: 'Esta etiqueta ya existe', type: 'warning' });
       return;
     }
-    
-    updateUserPreferences({
-      customTags: [...preferences.customTags, tag]
-    });
+    updateUserPreferences({ customTags: [...preferences.customTags, tag] });
     setNewTag('');
-    addToast({ message: `Etiqueta "${tag}" agregada`, type: 'success' });
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    updateUserPreferences({
-      customTags: preferences.customTags.filter(t => t !== tagToRemove)
-    });
-    addToast({ message: 'Etiqueta eliminada', type: 'success' });
+    updateUserPreferences({ customTags: preferences.customTags.filter(t => t !== tagToRemove) });
   };
 
   const handleLogout = () => {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
       logout();
-      addToast({ message: 'Sesión cerrada', type: 'success' });
       router.push('/auth');
+    }
+  };
+
+  const handleExportData = () => {
+    setIsExportModalOpen(true);
+  };
+
+  const handleDeleteAccount = () => {
+    if (confirm('Esta acción es IRREVERSIBLE. ¿Estás absolutamente seguro de eliminar tu cuenta y todos tus datos?')) {
+      addToast({ message: 'Solicitud de eliminación enviada', type: 'warning' });
+      setTimeout(() => { logout(); router.push('/auth'); }, 1000);
     }
   };
 
   if (!user) return null;
 
   return (
-    <PageTransition className="min-h-screen bg-slate-50/50 dark:bg-surface-2 transition-colors duration-200 pb-20 text-text-primary">
-      {/* ─── Header ─── */}
-      <header className="sticky top-0 z-20 bg-white/95 dark:bg-surface/95 backdrop-blur-xl border-b border-border px-4 py-3.5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="touch-target rounded-xl hover:bg-slate-100 dark:hover:bg-surface-3 transition-colors p-2"
-            aria-label="Volver al Dashboard"
-          >
-            <ArrowLeft size={22} className="text-text-primary" />
+    <PageTransition className="min-h-screen bg-surface-2 transition-colors duration-200 pb-20 text-text-primary">
+      {/* Header Expandido */}
+      <div className="bg-surface border-b border-border shadow-sm">
+        <header className="px-4 py-3.5 flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/dashboard')} className="p-2 rounded-xl hover:bg-surface-2 transition-colors">
+              <ArrowLeft size={22} className="text-text-primary" />
+            </button>
+            <h1 className="font-syne font-bold text-lg">Configuración</h1>
+          </div>
+          <button onClick={handleSaveProfile} className="bg-primary text-white px-4 py-1.5 rounded-xl font-dm text-sm font-semibold hover:bg-primary/90 transition-colors shadow-blue-sm">
+            Guardar
           </button>
-          <div>
-            <h1 className="font-syne font-bold text-lg text-text-primary">Mi Perfil</h1>
-            <p className="font-dm text-xs text-text-secondary">Configuración y cuenta</p>
+        </header>
+
+        {/* Profile Card Summary */}
+        <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent p-1 flex items-center justify-center text-4xl shadow-card">
+                <div className="w-full h-full bg-surface rounded-full flex items-center justify-center">
+                  {profileAvatar}
+                </div>
+              </div>
+            </div>
+            <div className="text-center md:text-left">
+              <h2 className="font-syne font-bold text-2xl">{profileName}</h2>
+              <p className="font-dm text-text-secondary text-sm flex items-center justify-center md:justify-start gap-1">
+                <Mail size={14}/> {profileEmail}
+              </p>
+            </div>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-xs font-dm font-semibold text-error hover:bg-error/5 dark:hover:bg-error/10 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors touch-target border border-error/10 bg-white dark:bg-surface shadow-sm"
-          aria-label="Cerrar sesión"
-        >
-          <LogOut size={15} />
-          <span>Cerrar sesión</span>
-        </button>
-      </header>
 
-      <div className="p-4 sm:p-6 max-w-6xl mx-auto md:px-8 space-y-6 mt-4">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* ─── Column Left (Sidebar) ─── */}
-          <aside className="lg:col-span-4 bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card space-y-6">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#1A66FF] to-accent flex items-center justify-center text-white font-syne font-bold text-4xl shadow-blue-sm relative group overflow-hidden">
-                {profileAvatar ? (
-                  <span className="text-4xl leading-none">{profileAvatar}</span>
-                ) : (
-                  getInitials(user.name)
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <h2 className="font-syne font-bold text-lg text-text-primary">{user.name}</h2>
-                <p className="font-dm text-xs text-text-secondary">{user.email}</p>
-                <div className="flex items-center justify-center gap-1 text-xs text-[#1A66FF] font-semibold bg-[#F0F5FF] px-2.5 py-1 rounded-full border border-blue-100 w-fit mx-auto">
-                  <MapPin size={12} />
-                  <span>{user.city}</span>
-                </div>
-              </div>
-            </div>
+        {/* Heatmap Section */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6 mb-6">
+          <SpendingHeatmap />
+        </div>
 
-            {/* Level status */}
-            <div className="border-t border-border pt-4 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-dm text-text-secondary">Nivel actual</span>
-                <span className="font-syne font-bold text-[#1A66FF]">Nivel {user.level}</span>
-              </div>
-              <ProgressBar
-                value={user.xp}
-                max={user.xpToNextLevel}
-                color="#1A66FF"
-                height="xs"
-              />
-              <div className="flex justify-between text-[9px] font-mono text-text-secondary pt-0.5">
-                <span>{user.xp} XP</span>
-                <span>{user.xpToNextLevel} XP para Lvl {user.level + 1}</span>
-              </div>
-            </div>
-
-            {/* Dark Mode switcher inside sidebar */}
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  {preferences.theme === 'dark' ? (
-                    <Moon size={18} className="text-accent" />
-                  ) : (
-                    <Sun size={18} className="text-warning" />
-                  )}
-                  <div>
-                    <p className="font-syne font-semibold text-xs text-text-primary">Modo oscuro</p>
-                    <p className="font-dm text-[10px] text-text-secondary">Fatiga visual reducida</p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={toggleDarkMode}
-                  className={`w-12 h-6.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
-                    preferences.theme === 'dark' ? 'bg-[#1A66FF]' : 'bg-slate-200 border border-border'
-                  }`}
-                  role="switch"
-                  aria-checked={preferences.theme === 'dark'}
-                  aria-label="Alternar modo oscuro"
-                >
-                  <div
-                    className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                      preferences.theme === 'dark' ? 'translate-x-5.5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-              
-              {/* Theme Color Picker */}
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Palette size={18} className="text-primary" />
-                  <div>
-                    <p className="font-syne font-semibold text-xs text-text-primary">Color de fondo</p>
-                    <p className="font-dm text-[10px] text-text-secondary">Personaliza tu dashboard</p>
-                  </div>
-                </div>
-                <div className="flex justify-between px-1">
-                  {COLOR_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => {
-                        updateUserPreferences({ themeColor: template.color });
-                        addToast({ message: `Color cambiado a ${template.name}`, type: 'success' });
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
-                        preferences.themeColor === template.color ? "border-primary scale-110" : "border-transparent shadow-sm"
-                      )}
-                      style={{ backgroundColor: template.color }}
-                      title={template.name}
-                      aria-label={`Seleccionar color ${template.name}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* ─── Column Right (Dynamic Content) ─── */}
-          <main className="lg:col-span-8 space-y-6">
-            
-            {/* Bloque Superior: Rendimiento/Gamificación */}
-            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
-              <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-4">Rendimiento y Logros</h3>
-              <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
-                  <div className="text-[#1A66FF] mb-1.5"><Flame size={20} /></div>
-                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.streakDays} días</p>
-                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Racha actual</p>
-                </div>
-                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
-                  <div className="text-[#1A66FF] mb-1.5"><Target size={20} /></div>
-                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.goalsCompleted}</p>
-                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Metas logradas</p>
-                </div>
-                <div className="bg-[#F0F5FF] border border-blue-100/50 p-3.5 rounded-2xl text-center flex flex-col items-center">
-                  <div className="text-[#1A66FF] mb-1.5"><Award size={20} /></div>
-                  <p className="font-mono font-bold text-text-primary text-sm sm:text-base">{user.maxStreak} días</p>
-                  <p className="font-dm text-[10px] sm:text-xs text-text-secondary mt-0.5">Racha récord</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Bloque Medio: Datos Personales Form */}
-            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
-              <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary mb-4">Datos personales</h3>
-              <form onSubmit={handleSaveProfile} className="flex flex-col space-y-5">
-                
-                {/* Animal Avatar Selector */}
-                <div className="space-y-2">
-                  <label className="font-syne font-semibold text-xs text-text-primary pl-1">
-                    Icono de perfil (Animales)
-                  </label>
-                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-slate-50 dark:bg-surface-2 p-3 rounded-2xl border border-border max-h-36 overflow-y-auto shadow-inner">
-                    {ANIMAL_AVATARS.map((emoji) => {
-                      const isSelected = profileAvatar === emoji;
-                      return (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => setProfileAvatar(emoji)}
-                          className={cn(
-                            'h-10 w-10 text-xl rounded-xl flex items-center justify-center transition-all duration-200',
-                            isSelected
-                              ? 'bg-primary text-white scale-110 shadow-blue-sm'
-                              : 'bg-white dark:bg-surface hover:bg-slate-100 dark:hover:bg-surface-3 text-text-primary border border-border'
-                          )}
-                        >
-                          {emoji}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nombre completo</label>
-                    <div className="relative">
-                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                      <input
-                        type="text"
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
-                        placeholder="Tu nombre"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Correo electrónico</label>
-                    <div className="relative">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                      <input
-                        type="email"
-                        value={profileEmail}
-                        onChange={(e) => setProfileEmail(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
-                        placeholder="ejemplo@correo.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Municipio de Chiapas</label>
-                    <div className="relative">
-                      <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                      <select
-                        value={profileCity}
-                        onChange={(e) => setProfileCity(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all appearance-none shadow-sm cursor-pointer"
-                      >
-                        {CHIAPAS_CITIES.map((city) => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-syne font-semibold text-xs text-text-primary pl-1">Nueva contraseña (dejar vacío para mantener la actual)</label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                      <input
-                        type="password"
-                        value={profilePassword}
-                        onChange={(e) => setProfilePassword(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] focus:ring-2 focus:ring-[#1A66FF]/10 transition-all shadow-sm"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-6 py-3 bg-[#1A66FF] hover:bg-[#0047D4] text-white font-dm font-bold text-sm rounded-xl transition-colors shadow-blue-sm self-end animate-pulse-subtle"
-                >
-                  Guardar cambios
-                </button>
-              </form>
-            </section>
-
-            {/* Bloque Inferior: Etiquetas Personalizadas */}
-            <section className="bg-white dark:bg-surface border border-border rounded-3xl p-6 shadow-card">
-              <div className="flex items-center gap-2 mb-2">
-                <Tag size={18} className="text-[#1A66FF]" />
-                <h3 className="font-syne font-bold text-sm sm:text-base text-text-primary">Etiquetas personalizadas</h3>
-              </div>
-              <p className="font-dm text-xs text-text-secondary mb-4 leading-normal">
-                Agrega etiquetas para organizar tus gastos colaborativos y de uso diario de manera más flexible.
-              </p>
-
-              {/* List of tags */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {preferences.customTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 pl-3 pr-1 py-1.5 rounded-full bg-[#F0F5FF] border border-blue-100 text-[#1A66FF] font-dm font-semibold text-xs"
-                  >
-                    <span>#{tag}</span>
-                    <button
-                      onClick={() => handleRemoveTag(tag)}
-                      className="w-5 h-5 rounded-full hover:bg-[#1A66FF]/10 flex items-center justify-center transition-colors text-[#1A66FF]/70 hover:text-[#1A66FF]"
-                      aria-label={`Eliminar etiqueta ${tag}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-                {preferences.customTags.length === 0 && (
-                  <span className="font-dm text-xs text-text-secondary italic">
-                    No tienes etiquetas personalizadas aún.
-                  </span>
-                )}
-              </div>
-
-              {/* Form to add tags */}
-              <form onSubmit={handleAddTag} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="Nueva etiqueta (ej. cafeteria)..."
-                  maxLength={20}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl font-dm text-xs sm:text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:bg-white focus:border-[#1A66FF] transition-all shadow-sm"
-                />
-                <button
-                  type="submit"
-                  className="w-10 h-10 bg-[#1A66FF] hover:bg-[#0047D4] text-white rounded-xl flex items-center justify-center transition-colors shadow-blue-sm touch-target"
-                  aria-label="Agregar etiqueta"
-                >
-                  <Plus size={18} />
-                </button>
-              </form>
-            </section>
-          </main>
+        {/* Tabs Nav */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex overflow-x-auto no-scrollbar gap-2 pb-px mt-2">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-dm font-semibold border-b-2 transition-colors whitespace-nowrap",
+                activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"
+              )}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Main Content Area */}
+      <div className="max-w-4xl mx-auto p-4 md:p-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* ─── TAB: PERSONAL ─── */}
+            {activeTab === 'personal' && (
+              <>
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                  <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><User size={18} className="text-primary"/> Información Básica</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Nombre Completo</label>
+                      <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} className="w-full bg-surface-2 border border-border rounded-xl px-4 py-2.5 font-dm text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Correo Electrónico</label>
+                      <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} className="w-full bg-surface-2 border border-border rounded-xl px-4 py-2.5 font-dm text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Ciudad</label>
+                      <div className="relative">
+                        <MapPin size={16} className="absolute left-3.5 top-3 text-text-secondary" />
+                        <select value={profileCity} onChange={e => setProfileCity(e.target.value)} className="w-full bg-surface-2 border border-border rounded-xl pl-10 pr-4 py-2.5 font-dm text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20">
+                          {CHIAPAS_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Fecha de Nacimiento</label>
+                      <div className="relative">
+                        <Calendar size={16} className="absolute left-3.5 top-3 text-text-secondary" />
+                        <input type="date" value={profileBirth} onChange={e => setProfileBirth(e.target.value)} max={getTodayISO()} className="w-full bg-surface-2 border border-border rounded-xl pl-10 pr-4 py-2.5 font-dm text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                  <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><Briefcase size={18} className="text-primary"/> Perfil Financiero (Opcional)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Ocupación</label>
+                      <select value={profileOccupation} onChange={e => setProfileOccupation(e.target.value)} className="w-full bg-surface-2 border border-border rounded-xl px-4 py-2.5 font-dm text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Seleccionar...</option>
+                        <option value="Estudiante">Estudiante</option>
+                        <option value="Empleado">Empleado</option>
+                        <option value="Freelancer">Freelancer</option>
+                        <option value="Negocio Propio">Negocio Propio</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-dm font-bold text-text-secondary uppercase">Ingreso Mensual Estimado</label>
+                      <div className="relative">
+                        <DollarSign size={16} className="absolute left-3.5 top-3 text-text-secondary" />
+                        <input type="number" placeholder="0.00" value={profileIncome} onChange={e => setProfileIncome(e.target.value)} className="w-full bg-surface-2 border border-border rounded-xl pl-10 pr-4 py-2.5 font-dm text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs font-dm text-text-secondary mt-3">Estos datos ayudan a nuestro asesor IA a brindarte mejores recomendaciones.</p>
+                </div>
+              </>
+            )}
+
+            {/* ─── TAB: PREFERENCES ─── */}
+            {activeTab === 'preferences' && (
+              <>
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                  <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><Palette size={18} className="text-primary"/> Apariencia</h3>
+                  
+                  <div className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border mb-4">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm">Modo Oscuro</h4>
+                      <p className="text-xs text-text-secondary">Reduce el brillo de tu pantalla</p>
+                    </div>
+                    <button onClick={toggleDarkMode} className="p-3 bg-surface rounded-xl shadow-sm border border-border text-text-primary hover:bg-surface-3 transition-colors">
+                      {preferences.theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+                    </button>
+                  </div>
+
+                  <h4 className="font-dm font-bold text-sm mb-2 mt-6">Color Principal (Requiere recargar)</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {COLOR_TEMPLATES.map(t => (
+                      <button key={t.id} onClick={() => updateUserPreferences({ themeColor: t.color })} className={cn(
+                        "w-10 h-10 rounded-full border-2 transition-all",
+                        preferences.themeColor === t.color ? "border-primary scale-110 shadow-md" : "border-transparent opacity-70 hover:opacity-100 hover:scale-105"
+                      )} style={{ backgroundColor: t.color }} title={t.name} aria-label={t.name}/>
+                    ))}
+                  </div>
+
+                  <h4 className="font-dm font-bold text-sm mb-2 mt-6">Tu Avatar</h4>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                    {ANIMAL_AVATARS.map(animal => (
+                      <button key={animal} onClick={() => setProfileAvatar(animal)} className={cn(
+                        "text-2xl p-2 rounded-xl transition-all",
+                        profileAvatar === animal ? "bg-primary/20 scale-110 shadow-inner" : "hover:bg-surface-2 hover:scale-110 grayscale opacity-50 hover:grayscale-0 hover:opacity-100"
+                      )}>
+                        {animal}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                  <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><Tag size={18} className="text-primary"/> Etiquetas Personalizadas</h3>
+                  <p className="text-xs font-dm text-text-secondary mb-4">Usa etiquetas rápidas para categorizar tus transacciones fácilmente.</p>
+                  <form onSubmit={handleAddTag} className="flex gap-2 mb-4">
+                    <input type="text" placeholder="Ej. uber, netflix, oxxo" value={newTag} onChange={e => setNewTag(e.target.value)} className="flex-1 bg-surface-2 border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary" />
+                    <button type="submit" className="bg-primary text-white px-4 py-2 rounded-xl font-bold font-dm text-sm hover:bg-primary/90 transition-colors">Agregar</button>
+                  </form>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.customTags.map(tag => (
+                      <span key={tag} className="flex items-center gap-1 bg-surface-2 border border-border px-3 py-1.5 rounded-lg text-xs font-dm text-text-primary">
+                        #{tag}
+                        <button onClick={() => handleRemoveTag(tag)} className="ml-1 text-text-secondary hover:text-red-500"><ChevronRight size={14} className="rotate-45"/></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border mt-6">
+                  <h3 className="font-syne font-bold text-lg mb-2 flex items-center gap-2"><Sparkles size={18} className="text-primary"/> Guía de FinSense</h3>
+                  <p className="text-xs font-dm text-text-secondary mb-4">¿Te perdiste de algo o quieres volver a ver el tutorial interactivo (con el perrito)?</p>
+                  <button 
+                    onClick={() => {
+                      setHasSeenTour(false);
+                      setTourStepIndex(0);
+                      router.push('/dashboard');
+                    }} 
+                    className="bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-xl font-bold font-dm text-sm hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Reiniciar Guía de Bienvenida
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ─── TAB: NOTIFICATIONS ─── */}
+            {activeTab === 'notifications' && (
+              <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><Bell size={18} className="text-primary"/> Preferencias de Notificaciones</h3>
+                
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border cursor-pointer hover:bg-surface-3 transition-colors">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm text-text-primary">Alertas de Presupuestos</h4>
+                      <p className="text-xs text-text-secondary mt-1">Avisarme cuando alcance el 80% o 100% de mi presupuesto.</p>
+                    </div>
+                    <div className={cn("w-12 h-6 rounded-full flex items-center p-1 transition-colors", notiBudgets ? "bg-primary" : "bg-border")}>
+                      <div className={cn("w-4 h-4 bg-white rounded-full transition-transform shadow-sm", notiBudgets ? "translate-x-6" : "")} />
+                    </div>
+                    <input type="checkbox" className="hidden" checked={notiBudgets} onChange={() => setNotiBudgets(!notiBudgets)} />
+                  </label>
+
+                  <label className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border cursor-pointer hover:bg-surface-3 transition-colors">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm text-text-primary">Recordatorios de Suscripciones</h4>
+                      <p className="text-xs text-text-secondary mt-1">Notificarme 3 días antes de que se cobre una suscripción activa.</p>
+                    </div>
+                    <div className={cn("w-12 h-6 rounded-full flex items-center p-1 transition-colors", notiSubs ? "bg-primary" : "bg-border")}>
+                      <div className={cn("w-4 h-4 bg-white rounded-full transition-transform shadow-sm", notiSubs ? "translate-x-6" : "")} />
+                    </div>
+                    <input type="checkbox" className="hidden" checked={notiSubs} onChange={() => setNotiSubs(!notiSubs)} />
+                  </label>
+
+                  <label className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border cursor-pointer hover:bg-surface-3 transition-colors">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm text-text-primary">Novedades y Gamificación</h4>
+                      <p className="text-xs text-text-secondary mt-1">Recibir recordatorios de rachas e insignias obtenidas.</p>
+                    </div>
+                    <div className={cn("w-12 h-6 rounded-full flex items-center p-1 transition-colors", notiGame ? "bg-primary" : "bg-border")}>
+                      <div className={cn("w-4 h-4 bg-white rounded-full transition-transform shadow-sm", notiGame ? "translate-x-6" : "")} />
+                    </div>
+                    <input type="checkbox" className="hidden" checked={notiGame} onChange={() => setNotiGame(!notiGame)} />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* ─── TAB: SECURITY (Danger Zone) ─── */}
+            {activeTab === 'security' && (
+              <>
+                <div className="bg-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-border">
+                  <h3 className="font-syne font-bold text-lg mb-4 flex items-center gap-2"><Lock size={18} className="text-primary"/> Privacidad</h3>
+                  <label className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border cursor-pointer hover:bg-surface-3 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <EyeOff size={20} className="text-text-secondary mt-0.5"/>
+                      <div>
+                        <h4 className="font-dm font-bold text-sm text-text-primary">Modo Discreto (Ocultar Saldos)</h4>
+                        <p className="text-xs text-text-secondary mt-1">Oculta tus saldos con asteriscos (***) por defecto al abrir la app.</p>
+                      </div>
+                    </div>
+                    <div className={cn("w-12 h-6 rounded-full flex items-center p-1 transition-colors", hideBalances ? "bg-primary" : "bg-border")}>
+                      <div className={cn("w-4 h-4 bg-white rounded-full transition-transform shadow-sm", hideBalances ? "translate-x-6" : "")} />
+                    </div>
+                    <input type="checkbox" className="hidden" checked={hideBalances} onChange={() => setHideBalances(!hideBalances)} />
+                  </label>
+                </div>
+
+                <div className="bg-red-50 dark:bg-red-950/20 p-5 sm:p-6 rounded-2xl shadow-sm border border-red-200 dark:border-red-900/50 mt-8">
+                  <h3 className="font-syne font-bold text-lg mb-4 text-red-600 dark:text-red-500">Zona de Peligro</h3>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-white dark:bg-surface rounded-xl border border-red-100 dark:border-red-900/30 mb-4">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm text-text-primary">Exportar mis Datos</h4>
+                      <p className="text-xs text-text-secondary mt-1">Descarga un archivo con toda tu información transaccional y personal.</p>
+                    </div>
+                    <button onClick={handleExportData} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-surface-2 border border-border rounded-lg text-sm font-dm font-bold hover:bg-surface-3 transition-colors">
+                      <Download size={16} /> Exportar JSON
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-white dark:bg-surface rounded-xl border border-red-100 dark:border-red-900/30">
+                    <div>
+                      <h4 className="font-dm font-bold text-sm text-text-primary">Eliminar Cuenta</h4>
+                      <p className="text-xs text-text-secondary mt-1">Elimina permanentemente tu cuenta y todos tus datos.</p>
+                    </div>
+                    <button onClick={handleDeleteAccount} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-dm font-bold hover:bg-red-200 transition-colors">
+                      <Trash2 size={16} /> Eliminar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border mt-8 flex justify-center">
+                  <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-3 text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all font-dm font-bold">
+                    <LogOut size={18} /> Cerrar Sesión
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      
+      <ExportModal open={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />
     </PageTransition>
   );
 }

@@ -29,6 +29,10 @@ export const CATEGORIES = [
   { id: 'health',       label: 'Salud',           emoji: '💊', color: '#00C896', bgColor: '#F0FFF9' },
   { id: 'clothing',     label: 'Ropa',            emoji: '👕', color: '#FF8C00', bgColor: '#FFF5F0' },
   { id: 'savings',      label: 'Ahorro',          emoji: '🏦', color: '#0057FF', bgColor: '#F0F5FF' },
+  { id: 'colectivo',    label: 'Colectivo / Ruta', emoji: '🚌', color: '#00C2FF', bgColor: '#E6FAFF' },
+  { id: 'pozol',        label: 'Pozol / Antojitos', emoji: '🍽️', color: '#E28743', bgColor: '#FDF3EB' },
+  { id: 'copias',       label: 'Copias / Impresiones', emoji: '📚', color: '#9B5DE5', bgColor: '#F5EEFD' },
+  { id: 'renta',        label: 'Renta / Roomies', emoji: '🏠', color: '#FF82A9', bgColor: '#FFF0F4' },
   { id: 'other',        label: 'Otro',            emoji: '📦', color: '#6B7280', bgColor: '#F5F5F5' },
 ] as const;
 
@@ -41,6 +45,14 @@ export const INCOME_CATEGORIES = [
   { id: 'gift',         label: 'Regalo',          emoji: '🎁', color: '#EC4899', bgColor: '#FDF2F8' },
   { id: 'other',        label: 'Otro',            emoji: '📦', color: '#6B7280', bgColor: '#F5F5F5' },
 ] as const;
+
+// ─── Route protection ───
+/** Routes accessible without authentication */
+export const PUBLIC_ROUTES = ['/auth'] as const;
+/** The fallback route when unauthenticated */
+export const AUTH_ROUTE = '/auth';
+/** Default route after login */
+export const DEFAULT_PROTECTED_ROUTE = '/dashboard';
 
 // Navigation items
 export const NAV_ITEMS = [
@@ -61,3 +73,6 @@ export const ANIM_DURATION = {
   normal: 0.4,
   slow: 0.6,
 } as const;
+
+// Chart colors for pie/donut charts
+export const PIE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFB800', '#A855F7', '#45B7D1'] as const;

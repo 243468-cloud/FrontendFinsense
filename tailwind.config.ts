@@ -4,32 +4,40 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#0057FF',
-          light: '#3D82FF',
-          dark: '#003DB5',
+          DEFAULT: 'var(--color-primary)',
+          light: 'var(--color-primary-light)',
+          dark: 'var(--color-primary-dark)',
         },
-        accent: '#00C2FF',
+        accent: 'var(--color-accent)',
         surface: {
-          DEFAULT: '#FFFFFF',
-          2: '#F0F5FF',
-          3: '#E8EEFF',
+          DEFAULT: 'var(--color-surface)',
+          2: 'var(--color-surface-2)',
+          3: 'var(--color-surface-3)',
         },
         text: {
-          primary: '#0A0F1E',
-          secondary: '#4A5578',
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
         },
-        success: '#00C896',
-        warning: '#FFB800',
-        border: 'rgba(0,87,255,0.12)',
+        success: {
+          DEFAULT: 'var(--color-success)',
+          // Allow bg-success/N, text-success/N etc. via CSS variable
+          ...Object.fromEntries(
+            [10, 15, 20, 30, 40, 50, 60, 70, 80, 90].map(n => [n, `color-mix(in srgb, var(--color-success) ${n}%, transparent)`])
+          ),
+        },
+        warning: 'var(--color-warning)',
+        error: 'var(--color-error)',
+        border: 'var(--color-border)',
       },
       fontFamily: {
-        syne: ['Syne', 'sans-serif'],
-        dm: ['DM Sans', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        syne: ['var(--font-syne)', 'sans-serif'],
+        dm: ['var(--font-dm)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       boxShadow: {
         card: '0 4px 24px rgba(0, 87, 255, 0.10)',
