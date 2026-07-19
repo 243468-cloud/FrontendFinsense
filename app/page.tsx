@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createRipple, getIconForEmoji } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 // ─── Letter-by-letter animation for hero title ───
 function AnimatedTitle({ text }: { text: string }) {
@@ -57,6 +58,8 @@ function AnimatedTitle({ text }: { text: string }) {
 export default function LandingPage() {
  const router = useRouter();
  const containerRef = useRef<HTMLDivElement>(null);
+ const { isAuthenticated } = useAuthStore();
+ const [authChecked, setAuthChecked] = useState(false);
  
  // PWA installation hooks
  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -70,6 +73,15 @@ export default function LandingPage() {
 
  const { scrollYProgress } = useScroll({ container: containerRef });
  const geoY = useTransform(scrollYProgress, [0, 1], ['0%', '-20%']);
+
+ // Redirect already-logged-in users to dashboard
+ useEffect(() => {
+ if (isAuthenticated) {
+ router.replace('/dashboard');
+ } else {
+ setAuthChecked(true);
+ }
+ }, [isAuthenticated, router]);
 
  useEffect(() => {
  const handleBeforeInstallPrompt = (e: any) => {
@@ -88,6 +100,9 @@ export default function LandingPage() {
  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
  };
  }, []);
+
+ // Don't render the landing while checking auth (avoids flash)
+ if (!authChecked) return null;
 
  const handleStart = (e: React.MouseEvent<HTMLButtonElement>) => {
  createRipple(e);

@@ -4,6 +4,7 @@ import { Joyride, Step, TooltipRenderProps, STATUS, EventData, EVENTS, ACTIONS }
 import { motion } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 
 // Custom Tooltip Component for the Guided Tour
 const CustomTooltip = ({
@@ -150,17 +151,21 @@ export function AppGuide() {
   const router = useRouter();
   const pathname = usePathname();
   const { hasSeenTour, setHasSeenTour, tourStepIndex, setTourStepIndex } = useUIStore();
+  const { isAuthenticated } = useAuthStore();
   const [run, setRun] = useState(false);
 
+  // Determine if we are on a public (non-app) route
+  const isPublicRoute = !pathname || pathname === '/' || pathname.startsWith('/auth');
+
   useEffect(() => {
-    // Only run if not seen and we're on the client
-    if (!hasSeenTour) {
+    // Only run the tour when the user is authenticated and inside the app
+    if (!hasSeenTour && isAuthenticated && !isPublicRoute) {
       const timer = setTimeout(() => {
         setRun(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour]);
+  }, [hasSeenTour, isAuthenticated, isPublicRoute]);
 
   const handleJoyrideCallback = (data: EventData) => {
     const { status, type, action, index } = data;
