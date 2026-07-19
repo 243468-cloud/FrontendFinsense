@@ -7,12 +7,14 @@ import type { LoginDTO, RegisterDTO, AuthResponse, User } from '@/types/auth.typ
 export function setAuthCookie(token: string): void {
   if (typeof document === 'undefined') return;
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-  document.cookie = `${TOKEN_KEY}=${token}; path=/; expires=${expires}; SameSite=Strict`;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; expires=${expires}; SameSite=Lax${secure}`;
 }
 
 export function clearAuthCookie(): void {
   if (typeof document === 'undefined') return;
-  document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
 }
 
 function persistTokens(accessToken: string, refreshToken: string): void {
