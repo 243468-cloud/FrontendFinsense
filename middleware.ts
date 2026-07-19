@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { TOKEN_KEY, PUBLIC_ROUTES, AUTH_ROUTE } from '@/lib/constants';
+
+// Inlined from @/lib/constants — Edge Runtime cannot resolve path aliases
+const TOKEN_KEY = 'finsense_token';
+const PUBLIC_ROUTES = ['/auth'] as const;
+const AUTH_ROUTE = '/auth';
 
 /**
  * Decode a JWT payload without verifying the signature.

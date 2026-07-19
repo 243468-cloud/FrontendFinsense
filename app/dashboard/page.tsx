@@ -62,56 +62,43 @@ export default function DashboardPage() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [showChestModal, setShowChestModal] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    
+  // ─── Data fetch function (reusable for refresh) ───
+  const fetchDashboardData = (isMounted: () => boolean) => {
     getTransactions({ limit: 5 }).then(txs => {
-      if (isMounted) setTransactions(txs);
+      if (isMounted()) setTransactions(txs);
     }).catch((e: any) => { console.error(e); });
 
     getSummary('week').then(sum => {
-      if (isMounted) {
+      if (isMounted()) {
         setSummary(sum);
         setIsLoading(false);
       }
     }).catch(() => {
-      if (isMounted) {
+      if (isMounted()) {
         addToast({ message: 'Error al cargar resumen', type: 'error' });
         setIsLoading(false);
       }
     });
 
     getNotifications().then(notifs => {
-      if (isMounted) setUnreadNotifications(notifs.filter(n => !n.read).length);
+      if (isMounted()) setUnreadNotifications(notifs.filter(n => !n.read).length);
     }).catch((e: any) => { console.error(e); });
 
-    getBenchmarks(user?.city ?? 'Tuxtla Gutiérrez').then(bData => {
-      if (isMounted) {
-        setBenchmarks(bData);
-        setIsLoadingBenchmarks(false);
-      }
-    }).catch(() => {
-      if (isMounted) setIsLoadingBenchmarks(false);
-    });
-
-
     getProfile().then(pData => {
-      if (isMounted) {
+      if (isMounted()) {
         setGamiProfile(pData);
         const today = new Date().toISOString().split('T')[0];
         const lastEntry = pData.lastEntryDate ? new Date(pData.lastEntryDate).toISOString().split('T')[0] : null;
-        if (lastEntry !== today) {
-          setCanClaimDaily(true);
-        }
+        if (lastEntry !== today) setCanClaimDaily(true);
       }
     }).catch((e: any) => { console.error(e); });
 
     getQuests().then(qData => {
-      if (isMounted) setQuests(qData);
+      if (isMounted()) setQuests(qData);
     }).catch((e: any) => { console.error(e); });
 
     getAchievements().then(aData => {
-      if (isMounted) {
+      if (isMounted()) {
         setAchievements(aData);
         const newAch = aData.find(a => a.justUnlocked);
         if (newAch) {
@@ -120,13 +107,48 @@ export default function DashboardPage() {
         }
       }
     }).catch((e: any) => { console.error(e); });
+  };
+
+  // Initial load
+  useEffect(() => {
+    let mounted = true;
+    const isMounted = () => mounted;
+
+    fetchDashboardData(isMounted);
 
     if (!goalsLoaded) {
       fetchGoals().catch(err => { console.error(err); addToast({ message: 'Error cargando metas', type: 'error' }); });
     }
 
-    return () => { isMounted = false; };
+    // Bug 1 fix: re-fetch when user returns to this tab
+    const handleVisibility = () => {
+      if (!document.hidden && mounted) {
+        setIsLoading(true);
+        fetchDashboardData(isMounted);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      mounted = false;
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addToast, goalsLoaded, fetchGoals]);
+
+  // Bug 6 fix: re-fetch benchmarks when city changes
+  useEffect(() => {
+    let mounted = true;
+    getBenchmarks(user?.city ?? 'Tuxtla Gutiérrez').then(bData => {
+      if (mounted) {
+        setBenchmarks(bData);
+        setIsLoadingBenchmarks(false);
+      }
+    }).catch(() => {
+      if (mounted) setIsLoadingBenchmarks(false);
+    });
+    return () => { mounted = false; };
+  }, [user?.city]);
 
   const goals = allGoals.filter((g) => g.status === 'active').slice(0, 2);
 
@@ -865,9 +887,10 @@ export default function DashboardPage() {
         levelUpInfo={levelUpInfo}
       />
 
+      {/* Bug 2 fix: clear achievement object on close so modal fully unmounts */}
       <AchievementModal 
-        achievement={unlockedAchievement}
-        onClose={() => setShowAchievementModal(false)}
+        achievement={showAchievementModal ? unlockedAchievement : null}
+        onClose={() => { setShowAchievementModal(false); setUnlockedAchievement(null); }}
       />
 
       <ChestModal

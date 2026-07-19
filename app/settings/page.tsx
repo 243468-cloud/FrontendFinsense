@@ -10,6 +10,7 @@ import {
 import { PageTransition, itemVariants } from '@/components/layout/PageTransition';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import apiClient from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
 
 const CITIES = ['Tuxtla Gutiérrez', 'Suchiapa'];
@@ -84,11 +85,17 @@ export default function SettingsPage() {
  addToast({ message: `Modo ${next === 'dark' ? 'oscuro' : 'claro'} activado`, type: 'success' });
  };
 
- const saveProfile = () => {
- if (!name.trim()) { addToast({ message: 'El nombre no puede estar vacío', type: 'warning' }); return; }
- updateUserProfile({ name: name.trim(), email: user?.email ?? '', city, avatar: user?.avatar ?? '' });
- setEditingProfile(false);
- addToast({ message: 'Perfil actualizado', type: 'success' });
+ const saveProfile = async () => {
+  if (!name.trim()) { addToast({ message: 'El nombre no puede estar vacío', type: 'warning' }); return; }
+  try {
+    // Persist to backend so it survives logout/login
+    await apiClient.patch('/auth/profile', { name: name.trim(), city });
+    updateUserProfile({ name: name.trim(), email: user?.email ?? '', city, avatar: user?.avatar ?? '' });
+    setEditingProfile(false);
+    addToast({ message: 'Perfil actualizado', type: 'success' });
+  } catch {
+    addToast({ message: 'Error al guardar el perfil', type: 'error' });
+  }
  };
 
  const handleLogout = () => {

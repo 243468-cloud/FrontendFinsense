@@ -198,10 +198,10 @@ export default function LandingPage() {
  </nav>
 
  {/* Right: Auth CTAs */}
- <div className="flex items-center gap-4">
+ <div className="flex items-center gap-3 sm:gap-4">
  <button
  onClick={() => router.push('/auth')}
- className="hidden sm:inline-block font-dm font-semibold text-sm text-text-secondary hover:text-primary transition-colors"
+ className="font-dm font-semibold text-sm text-text-secondary hover:text-primary transition-colors"
  >
  Iniciar sesión
  </button>

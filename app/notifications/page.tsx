@@ -28,10 +28,12 @@ import {
 } from '@/services/notificationService';
 import { formatRelativeDate } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function NotificationsPage() {
  const router = useRouter();
  const { addToast } = useUIStore();
+ const { user } = useAuthStore();
 
  const [notifications, setNotifications] = useState<AppNotification[]>([]);
  const [isLoading, setIsLoading] = useState(true);
@@ -84,15 +86,17 @@ export default function NotificationsPage() {
  async function handleAcceptInvite(e: React.MouseEvent, notif: AppNotification) {
  e.stopPropagation();
  try {
- const inviteData = JSON.parse(notif.message);
- if (inviteData && inviteData.groupId) {
- await apiClient.post(`/groups/${inviteData.groupId}/members`, { userId: 'me' });
- const updated = await deleteNotification(notif.id);
- setNotifications(updated);
- addToast({ message: `¡Te has unido a ${inviteData.groupName}!`, type: 'success' });
- }
+  // Backend stores invite data in 'message' field (JSON string)
+  const inviteData = JSON.parse(notif.message);
+  if (inviteData && inviteData.groupId && user?.id) {
+  // Send real userId — 'me' is not a valid userId in the backend
+  await apiClient.post(`/groups/${inviteData.groupId}/members`, { userId: user.id });
+  const updated = await deleteNotification(notif.id);
+  setNotifications(updated);
+  addToast({ message: `¡Te has unido a ${inviteData.groupName}!`, type: 'success' });
+  }
  } catch (error) {
- addToast({ message: 'Error al aceptar invitación', type: 'error' });
+  addToast({ message: 'Error al aceptar invitación', type: 'error' });
  }
  }
 

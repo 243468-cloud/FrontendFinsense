@@ -69,46 +69,8 @@ export default function AuthPage() {
  confirmPassword: '',
  });
 
- const [isTyping, setIsTyping] = useState(false);
  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-
- const handleLoadDemo = async () => {
- if (isTyping) return;
- setIsTyping(true);
- setMode('login');
- 
- setForm(prev => ({ ...prev, email: '', password: '' }));
- 
- const targetEmail = 'marco@demo.com';
- const targetPassword = 'Demo123!';
- 
- for (let i = 1; i <= targetEmail.length; i++) {
- await new Promise(r => setTimeout(r, 35));
- setForm(prev => ({ ...prev, email: targetEmail.slice(0, i) }));
- }
- 
- await new Promise(r => setTimeout(r, 150));
- 
- for (let i = 1; i <= targetPassword.length; i++) {
- await new Promise(r => setTimeout(r, 40));
- setForm(prev => ({ ...prev, password: targetPassword.slice(0, i) }));
- }
- 
- await new Promise(r => setTimeout(r, 200));
- 
- setIsTyping(false);
- setIsLoading(true);
- try {
- const response = await login({ email: targetEmail, password: targetPassword });
- setUser(response.user);
- addToast({ message: '¡Acceso de prueba exitoso! Bienvenido 👋', type: 'success' });
- router.push('/dashboard');
- } catch {
- addToast({ message: 'Error al iniciar sesión', type: 'error' });
- setIsLoading(false);
- }
- };
 
  function handleChange(field: keyof typeof form) {
  return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -285,8 +247,8 @@ export default function AuthPage() {
  {/* Grouped Metrics Block */}
  <div className="flex gap-16 pt-8 border-t border-border/40">
  <div>
- <p className="font-mono font-extrabold text-4xl text-text-primary">3,500+</p>
- <p className="font-dm text-sm text-text-secondary mt-2 font-medium">Jóvenes en Tuxtla</p>
+ <p className="font-mono font-extrabold text-4xl text-text-primary">Beta</p>
+ <p className="font-dm text-sm text-text-secondary mt-2 font-medium">Comunidad FinSense</p>
  </div>
  <div>
  <p className="font-mono font-extrabold text-4xl text-text-primary">$800</p>
@@ -358,7 +320,7 @@ export default function AuthPage() {
  Crea tu cuenta
  </h1>
  <p className="font-dm text-text-secondary text-sm sm:text-base">
- Únete a miles de jóvenes chiapanecos y ahorra de forma divertida.
+ Únete a jóvenes chiapanecos y ahorra de forma divertida.
  </p>
  </motion.div>
  )}
@@ -480,7 +442,7 @@ export default function AuthPage() {
  type="submit"
  fullWidth
  size="lg"
- loading={isLoading || isTyping}
+ loading={isLoading}
  icon={<ArrowRight size={20} />}
  iconPosition="right"
  className="font-dm font-semibold text-base shadow-blue-sm bg-gradient-to-r from-primary-dark to-primary border border-primary-dark/30 hover:from-primary hover:to-primary-light hover:border-primary/30"
@@ -709,22 +671,6 @@ export default function AuthPage() {
  )}
  </AnimatePresence>
  </form>
-
- {/* Quick Demo Access */}
- {mode !== 'recover' && (
- <div className="mt-8 pt-8 border-t border-border/60">
- <Button
- variant="ghost"
- fullWidth
- onClick={handleLoadDemo}
- disabled={isTyping}
- icon={<TrendingUp size={18} />}
- className="font-dm text-sm font-semibold bg-surface-2 text-text-secondary hover:bg-surface-3 hover:text-text-primary border-none shadow-none h-12"
- >
- Cargar cuenta de prueba
- </Button>
- </div>
- )}
 
  {/* Mobile support link */}
  <div className="mt-8 text-center sm:hidden">
