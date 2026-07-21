@@ -129,10 +129,7 @@ export default function NewTransactionPage() {
       return;
     }
 
-    if (date < getTodayISO()) {
-      addToast({ message: 'La fecha no puede ser en el pasado', type: 'error' });
-      return;
-    }
+
 
     setIsLoading(true);
     try {
@@ -330,7 +327,6 @@ export default function NewTransactionPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              min={getTodayISO()}
               className="w-full pl-11 pr-4 py-3.5 bg-surface border border-border rounded-xl font-dm text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               aria-label="Fecha de la transacción"
             />

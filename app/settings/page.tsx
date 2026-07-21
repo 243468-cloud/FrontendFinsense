@@ -266,7 +266,6 @@ export default function SettingsPage() {
  <SettingRow label="Ciudad" sub={user.city} onClick={() => setEditingProfile(true)} />
  </>
  )}
- <SettingRow label="Cambiar contraseña" sub="Actualiza tu contraseña de acceso" onClick={() => addToast({ message: 'Próximamente disponible', type: 'info' })} />
  </SectionCard>
 
  {/* ─── Apariencia ─── */}

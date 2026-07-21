@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
       setPanicMode: (active) => set({ isPanicMode: active }),
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setLoading: (isLoading) => set({ isLoading }),
-      logout: () => set({ user: null, isAuthenticated: false, preferences: DEFAULT_PREFERENCES }),
+      logout: () => set({ user: null, isAuthenticated: false }),
       updateUserPreferences: (prefs) => set((state) => ({
         preferences: { ...state.preferences, ...prefs }
       })),

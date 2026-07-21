@@ -22,7 +22,6 @@ export const PWA_THEME_COLOR = '#0057FF';
 // Transaction categories (Expenses)
 export const CATEGORIES = [
   { id: 'food',          label: 'Comida',         emoji: '🍽️', color: '#FF6B6B', bgColor: '#FFF0F0' },
-  { id: 'transport',     label: 'Transporte',      emoji: '🚌', color: '#4ECDC4', bgColor: '#F0FAFA' },
   { id: 'university',   label: 'Universidad',     emoji: '📚', color: '#45B7D1', bgColor: '#F0F8FF' },
   { id: 'entertainment', label: 'Entretenimiento', emoji: '🎮', color: '#A855F7', bgColor: '#FAF0FF' },
   { id: 'services',     label: 'Servicios',       emoji: '⚡', color: '#FFB800', bgColor: '#FFFBF0' },
