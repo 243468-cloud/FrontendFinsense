@@ -50,9 +50,15 @@ export function middleware(request: NextRequest) {
     pathname === '/' ||
     PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
-  if (isPublic) return NextResponse.next();
-
   const token = request.cookies.get(TOKEN_KEY)?.value;
+
+  if (isPublic) {
+    if (token && !isTokenExpired(token) && pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    return NextResponse.next();
+  }
+
 
   // No token → redirect to login
   if (!token) {
