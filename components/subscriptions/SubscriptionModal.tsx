@@ -54,17 +54,25 @@ export function SubscriptionModal({ isOpen, onClose, onSuccess, subscription }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    const parsedCost = parseFloat(formData.cost);
+    if (parsedCost < 0) {
+      addToast({ message: 'El costo no puede ser negativo', type: 'error' });
+      setLoading(false);
+      return;
+    }
+
     try {
       if (subscription) {
         await updateSubscription(subscription.id, {
           ...formData,
-          cost: parseFloat(formData.cost),
+          cost: parsedCost,
         });
         addToast({ message: 'Suscripción actualizada', type: 'success' });
       } else {
         await createSubscription({
           ...formData,
-          cost: parseFloat(formData.cost),
+          cost: parsedCost,
           currency: 'MXN',
         });
         addToast({ message: 'Suscripción agregada', type: 'success' });
@@ -126,6 +134,7 @@ export function SubscriptionModal({ isOpen, onClose, onSuccess, subscription }: 
                   required
                   type="number"
                   step="0.01"
+                  min="0"
                   placeholder="0.00"
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}

@@ -219,7 +219,7 @@ export function FinancialAdvisorBot() {
         <button
           key={idx}
           onClick={() => setInputValue(suggestion)}
-          className="whitespace-nowrap px-4 py-2 bg-surface/60 hover:bg-gradient-to-r hover:from-primary hover:to-accent text-primary hover:text-white border border-primary/20 rounded-full text-[11px] font-bold font-dm transition-all duration-300 shadow-sm active:scale-95"
+          className="whitespace-nowrap px-4 py-2 bg-surface/60 dark:bg-surface-3 hover:bg-gradient-to-r hover:from-primary hover:to-accent text-primary dark:text-white hover:text-white border border-primary/20 rounded-full text-[11px] font-bold font-dm transition-all duration-300 shadow-sm active:scale-95"
         >
           {suggestion}
         </button>

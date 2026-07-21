@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { login, register } from '@/services/authService';
+import { login, register, getProfile } from '@/services/authService';
 import { getPasswordStrength } from '@/lib/utils';
 
 type AuthMode = 'login' | 'register' | 'recover';
@@ -86,7 +86,8 @@ export default function AuthPage() {
  try {
  if (mode === 'login') {
  const result = await login({ email: form.email, password: form.password });
- setUser(result.user);
+ const fullProfile = await getProfile();
+ setUser(fullProfile);
  addToast({
  message: `¡Bienvenido de nuevo, ${result.user.name.split(' ')[0]}! 👋`,
  type: 'success',
@@ -104,7 +105,8 @@ export default function AuthPage() {
  return;
  }
  const result = await register({ name: form.name, email: form.email, password: form.password });
- setUser(result.user);
+ const fullProfile = await getProfile();
+ setUser(fullProfile);
  
  // Reset tour for new users
  setHasSeenTour(false);
@@ -262,13 +264,13 @@ export default function AuthPage() {
  {/* Right Column: Expansive Form Area */}
  <div className="flex-1 w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center items-center px-4 py-8 sm:px-6 md:px-12 relative z-20">
  
- {/* Back to Home desktop link */}
+ {/* Back to Home link */}
  <button 
  onClick={() => router.push('/')}
- className="hidden lg:flex items-center gap-1.5 absolute top-10 right-10 text-sm font-semibold text-text-secondary hover:text-primary transition-colors font-dm"
+ className="flex items-center gap-1.5 absolute top-4 right-4 sm:top-10 sm:right-10 text-sm font-semibold text-text-secondary hover:text-primary transition-colors font-dm z-50 bg-surface/50 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none p-2 sm:p-0 rounded-full"
  >
  <ArrowLeft size={16} />
- <span>Volver al inicio</span>
+ <span className="hidden sm:inline">Volver al inicio</span>
  </button>
 
  {/* Widened Form Card */}

@@ -13,35 +13,7 @@ import { cn, getTodayISO, formatCurrency, getIconForEmoji, getMinDateISO } from 
 import type { CategoryId, TransactionType } from '@/types/transaction.types';
 import { VoiceRecorderModal } from '@/components/transactions/VoiceRecorderModal';
 
-// Refined numeric keypad with tactile depth
-function NumericKeypad({
-  onKey,
-}: {
-  onKey: (key: string) => void;
-}) {
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
 
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      {keys.map((key) => (
-        <motion.button
-          key={key}
-          type="button"
-          className="h-14 rounded-3xl bg-surface border-b-4 border-border active:border-b-0 active:translate-y-1 font-mono font-bold text-xl text-text-primary hover:bg-surface-2 transition-all duration-75 shadow-sm flex items-center justify-center"
-          onClick={() => onKey(key)}
-          whileTap={{ scale: 0.96 }}
-          aria-label={key === '⌫' ? 'Borrar' : key}
-        >
-          {key === '⌫' ? (
-            <span className="text-xl">⌫</span>
-          ) : (
-            key
-          )}
-        </motion.button>
-      ))}
-    </div>
-  );
-}
 
 // Success checkmark animation on save
 function SuccessAnimation({ onDone }: { onDone: () => void }) {
@@ -259,19 +231,31 @@ export default function NewTransactionPage() {
             })}
           </div>
 
-          {/* ─── Amount Display ─── */}
-          <div className="text-center py-2">
+          {/* ─── Amount Input ─── */}
+          <div className="text-center py-2 flex flex-col items-center">
             <p className="font-dm text-xs sm:text-sm text-text-secondary mb-0.5 font-semibold">
               {isExpense ? 'Monto del gasto' : 'Monto del ingreso'}
             </p>
-            <motion.p
-              className="font-mono font-bold text-5xl sm:text-6xl tracking-tight transition-colors duration-300"
-              animate={{ color: isExpense ? '#EF4444' : '#10B981' }}
-              transition={{ duration: 0.3 }}
-              aria-label={`Monto: $${amount}`}
-            >
-              ${amount}
-            </motion.p>
+            <div className="relative flex items-center justify-center">
+              <span className={cn("font-mono font-bold text-5xl sm:text-6xl tracking-tight transition-colors duration-300 mr-1", isExpense ? 'text-red-500' : 'text-success')}>
+                $
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onFocus={(e) => { if(e.target.value === '0') setAmount('') }}
+                onBlur={(e) => { if(e.target.value === '') setAmount('0') }}
+                className={cn(
+                  "font-mono font-bold text-5xl sm:text-6xl tracking-tight transition-colors duration-300 bg-transparent border-none focus:outline-none focus:ring-0 w-[4ch] sm:w-[5ch]",
+                  isExpense ? 'text-red-500' : 'text-success'
+                )}
+                aria-label="Monto"
+              />
+            </div>
           </div>
 
           {/* ─── Category Grid ─── */}
@@ -354,8 +338,7 @@ export default function NewTransactionPage() {
         </div>
 
         <div className="space-y-4 pt-2">
-          {/* ─── Numeric Keypad ─── */}
-          <NumericKeypad onKey={handleKey} />
+
 
           {/* ─── Save Button ─── */}
           <motion.button

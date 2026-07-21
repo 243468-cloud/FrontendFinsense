@@ -41,7 +41,7 @@ export default function GroupChat({ groupId }: { groupId: string }) {
   // 2. Conectar a WebSocket
   useEffect(() => {
     const socketUrl = API_BASE_URL.replace('/api', '') + '/chat';
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, { transports: ['websocket'] });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -71,10 +71,32 @@ export default function GroupChat({ groupId }: { groupId: string }) {
   const handleSend = () => {
     if (!inputValue.trim() || !socket || !user) return;
 
+    const newMsgContent = inputValue.trim();
+    
+    // Optimistic update
+    const optimisticMsg: Message = {
+      id: Math.random().toString(36).substring(2, 9),
+      groupId,
+      senderId: user.id,
+      content: newMsgContent,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar
+      }
+    };
+    
+    // Solo agregamos si no existe ya para evitar duplicados en caso de que el backend envíe inmediatamente
+    setMessages(prev => {
+      if (prev.some(m => m.id === optimisticMsg.id)) return prev;
+      return [...prev, optimisticMsg];
+    });
+
     socket.emit('sendMessage', {
       groupId,
       userId: user.id,
-      content: inputValue.trim()
+      content: newMsgContent
     });
     setInputValue('');
   };
