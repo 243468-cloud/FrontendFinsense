@@ -56,15 +56,23 @@ export default function NewGroupPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [nameError, setNameError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    // Fetch real users from backend
-    apiClient.get('/auth/users').then(res => {
-      setAvailableUsers(res.data);
-    }).catch(e => console.error('Error fetching users:', e));
-  }, []);
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setAvailableUsers([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.get(`/auth/users/search?q=${encodeURIComponent(searchQuery)}`);
+        setAvailableUsers(res.data);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
  function handleToggleMember(id: string) {
  setSelectedMembers((prev) =>
@@ -196,9 +204,7 @@ export default function NewGroupPage() {
     </div>
 
     <div className="bg-surface/50 backdrop-blur-md border border-border/60 rounded-3xl p-2 space-y-1 max-h-[300px] overflow-y-auto scrollbar-hide shadow-inner">
-      {availableUsers
-        .filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
-        .map((friend) => {
+      {availableUsers.map((friend) => {
         const isSelected = selectedMembers.includes(friend.id);
         
         let badges: string[] = [];
@@ -261,7 +267,7 @@ export default function NewGroupPage() {
           </motion.button>
         );
       })}
-      {availableUsers.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+      {searchQuery.trim().length >= 2 && availableUsers.length === 0 && (
         <div className="p-4 text-center text-sm text-text-secondary font-dm">
           No se encontraron usuarios
         </div>

@@ -82,24 +82,34 @@ export default function GroupDetailPage() {
  }
  }, [groupId]);
 
- // Load available users when opening the add member modal
- const openMemberModal = async () => {
- setShowMemberModal(true);
- try {
- setLoadingUsers(true);
- const allUsers = await getUsers();
- // Filter out users who are already members of the group
- const currentMemberIds = group?.members.map(m => m.userId) || [];
- const filtered = allUsers.filter(u => !currentMemberIds.includes(u.id));
- setAvailableUsers(filtered);
- setSelectedUserId('');
- setSearchQuery('');
- } catch (err) {
- addToast({ message: 'Error cargando usuarios disponibles', type: 'error' });
- } finally {
- setLoadingUsers(false);
- }
- };
+  // Load available users when opening the add member modal
+  const openMemberModal = () => {
+  setShowMemberModal(true);
+  setAvailableUsers([]);
+  setSelectedUserId('');
+  setSearchQuery('');
+  };
+
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2 || !showMemberModal) {
+      setAvailableUsers([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingUsers(true);
+        const res = await apiClient.get(`/auth/users/search?q=${encodeURIComponent(searchQuery)}`);
+        const currentMemberIds = group?.members.map((m: any) => m.userId) || [];
+        const filtered = res.data.filter((u: any) => !currentMemberIds.includes(u.id));
+        setAvailableUsers(filtered);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingUsers(false);
+      }
+    }, 400); // Debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery, group, showMemberModal]);
 
  const handleAddExpense = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -121,11 +131,11 @@ export default function GroupDetailPage() {
  // Since the backend addExpense expects userId from the token, and uses paidBy: userId,
  // note: if paidBy selected is different than current user, it might be split differently,
  // but the backend API currently forces paidBy = req.user.id. So let's handle that gracefully.
- const payload = {
- amount: amountNum,
- title: expenseTitle,
- splitBetween: expenseSplit,
- };
+  const payload = {
+  amount: amountNum,
+  description: expenseTitle,
+  splitBetween: expenseSplit,
+  };
 
  await addGroupExpense(groupId, payload);
  
@@ -152,10 +162,10 @@ export default function GroupDetailPage() {
 
  try {
  setSubmittingMember(true);
- // Call endpoint directly using apiClient or route since groupService doesn't have a direct wrapper
- await apiClient.post(`/groups/${groupId}/members`, { userId: selectedUserId });
+ // Send an invite instead of adding them directly
+ await apiClient.post(`/groups/${groupId}/invites`, { userId: selectedUserId });
  
- addToast({ message: 'Integrante agregado con éxito', type: 'success' });
+ addToast({ message: 'Invitación enviada con éxito', type: 'success' });
  setShowMemberModal(false);
  setSelectedUserId('');
  
@@ -667,38 +677,28 @@ export default function GroupDetailPage() {
  <div className="py-4 text-center text-xs text-text-secondary">Cargando base de datos...</div>
  ) : (
  <div className="max-h-48 overflow-y-auto space-y-1">
- {searchQuery.trim().length > 0 ? (
- availableUsers.filter(u => 
- u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
- u.email.toLowerCase().includes(searchQuery.toLowerCase())
- ).length > 0 ? (
- availableUsers.filter(u => 
- u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
- u.email.toLowerCase().includes(searchQuery.toLowerCase())
- ).map((u) => (
- <div
- key={u.id}
- onClick={() => setSelectedUserId(u.id)}
- className={cn(
- "p-3 rounded-xl cursor-pointer flex justify-between items-center transition-all",
- selectedUserId === u.id 
- ? "bg-primary/10 border border-primary/20" 
- : "bg-surface hover:bg-surface-2 border border-border"
- )}
- >
- <div>
- <p className="font-syne font-bold text-sm">{u.name}</p>
- <p className="text-xs text-text-secondary">{u.email}</p>
- </div>
- {selectedUserId === u.id && <Check size={16} className="text-primary" />}
- </div>
- ))
- ) : (
- <div className="py-4 text-center text-xs text-text-secondary">No se encontraron usuarios.</div>
- )
- ) : (
- <div className="py-4 text-center text-xs text-text-secondary">Escribe al menos una letra para buscar.</div>
- )}
+ {availableUsers.length > 0 ? (
+  availableUsers.map((u) => (
+  <div
+  key={u.id}
+  onClick={() => setSelectedUserId(u.id)}
+  className={cn(
+  "p-3 rounded-xl cursor-pointer flex justify-between items-center transition-all",
+  selectedUserId === u.id 
+  ? "bg-primary/10 border border-primary/20" 
+  : "bg-surface hover:bg-surface-2 border border-border"
+  )}
+  >
+  <div>
+  <p className="font-syne font-bold text-sm">{u.name}</p>
+  <p className="text-xs text-text-secondary">{u.email}</p>
+  </div>
+  {selectedUserId === u.id && <Check size={16} className="text-primary" />}
+  </div>
+  ))
+  ) : (
+  <div className="py-4 text-center text-xs text-text-secondary">No se encontraron usuarios o debes escribir más.</div>
+  )}
  </div>
  )}
  </div>

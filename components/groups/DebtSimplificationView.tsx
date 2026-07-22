@@ -45,7 +45,7 @@ export function DebtSimplificationView({ groupId, onRefresh }: Props) {
     
     try {
       await apiClient.post(`/groups/${groupId}/expenses`, {
-        title: `Liquidación de deuda (${debt.from.name} a ${debt.to.name})`,
+        description: `Liquidación de deuda (${debt.from.name} a ${debt.to.name})`,
         amount: debt.amount,
         paidBy: debt.from.id, // El que debía acaba de pagar
         splitBetween: [debt.to.id], // El dinero va hacia el acreedor (lo dividimos solo hacia él)
