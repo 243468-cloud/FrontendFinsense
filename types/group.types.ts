@@ -42,7 +42,7 @@ export interface GroupExpense {
 }
 
 export interface GroupExpenseDTO {
-  title: string;
+  description: string;
   amount: number;
   paidBy?: string;
   splitBetween: string[];

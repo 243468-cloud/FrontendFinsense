@@ -67,7 +67,7 @@ export async function getGroupExpenses(groupId: string): Promise<GroupExpense[]>
 export async function addGroupExpense(groupId: string, dto: GroupExpenseDTO): Promise<GroupExpense> {
   const { data } = await apiClient.post<any>(`/groups/${groupId}/expenses`, {
     amount: dto.amount,
-    description: dto.title ?? dto.note,
+    description: dto.description,
     splitBetween: dto.splitBetween,
     paidBy: dto.paidBy,
   });
