@@ -122,7 +122,7 @@ export function FinancialAdvisorBot() {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0, opacity: 0, transition: { duration: 0.2 } }}
         onClick={toggleChat}
-        className="tour-ai-bot fixed bottom-20 right-[92px] sm:bottom-8 sm:right-[112px] z-40 w-14 h-14 rounded-full bg-surface text-primary border-2 border-primary/20 shadow-blue-sm flex items-center justify-center hover:scale-105 hover:border-primary/50 hover:shadow-blue-lg active:scale-95 transition-all print:hidden"
+        className="tour-ai-bot fixed bottom-24 right-[92px] sm:bottom-8 sm:right-[112px] z-40 w-14 h-14 rounded-full bg-surface text-primary border-2 border-primary/20 shadow-blue-sm flex items-center justify-center hover:scale-105 hover:border-primary/50 hover:shadow-blue-lg active:scale-95 transition-all print:hidden"
         aria-label="Abrir asistente financiero"
         whileHover={{ y: -2 }}
         layout

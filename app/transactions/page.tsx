@@ -255,27 +255,27 @@ export default function TransactionsHistoryPage() {
  animate="visible"
  className="bg-surface border border-border rounded-2xl p-4 shadow-card grid grid-cols-3 gap-2 text-center"
  >
- <div className="space-y-1">
+ <div className="space-y-1 min-w-0 overflow-hidden">
  <span className="font-dm text-[10px] text-text-secondary uppercase tracking-wider block">Ingresos</span>
- <span className="font-mono font-bold text-sm sm:text-base text-success flex items-center justify-center gap-0.5">
- <TrendingUp size={12} />
- {formatCurrency(totalIncome)}
+ <span className="font-mono font-bold text-sm text-success flex items-center justify-center gap-0.5 flex-wrap">
+ <TrendingUp size={12} className="shrink-0" />
+ <span className="truncate">{formatCurrency(totalIncome)}</span>
  </span>
  </div>
- <div className="space-y-1 border-x border-border">
+ <div className="space-y-1 border-x border-border min-w-0 overflow-hidden">
  <span className="font-dm text-[10px] text-text-secondary uppercase tracking-wider block">Gastos</span>
- <span className="font-mono font-bold text-sm sm:text-base text-red-500 flex items-center justify-center gap-0.5">
- <TrendingDown size={12} />
- {formatCurrency(totalExpenses)}
+ <span className="font-mono font-bold text-sm text-red-500 flex items-center justify-center gap-0.5 flex-wrap">
+ <TrendingDown size={12} className="shrink-0" />
+ <span className="truncate">{formatCurrency(totalExpenses)}</span>
  </span>
  </div>
- <div className="space-y-1">
+ <div className="space-y-1 min-w-0 overflow-hidden">
  <span className="font-dm text-[10px] text-text-secondary uppercase tracking-wider block">Balance</span>
- <span className={`font-mono font-bold text-sm sm:text-base flex items-center justify-center gap-0.5 ${
+ <span className={`font-mono font-bold text-sm flex items-center justify-center gap-0.5 flex-wrap ${
  balance >= 0 ? 'text-primary' : 'text-red-500'
  }`}>
- <Award size={12} />
- {formatCurrency(balance)}
+ <Award size={12} className="shrink-0" />
+ <span className="truncate">{formatCurrency(balance)}</span>
  </span>
  </div>
  </motion.div>

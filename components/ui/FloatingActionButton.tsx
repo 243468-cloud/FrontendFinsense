@@ -18,7 +18,7 @@ export function FloatingActionButton() {
   ];
 
   return (
-    <div className="fixed bottom-20 right-4 z-[99] flex flex-col items-end gap-4 sm:bottom-8 sm:right-8">
+    <div className="fixed bottom-24 right-4 z-[99] flex flex-col items-end gap-4 sm:bottom-8 sm:right-8">
       <AnimatePresence>
         {isFABOpen && (
           <motion.div

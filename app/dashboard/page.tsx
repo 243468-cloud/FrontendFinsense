@@ -856,13 +856,22 @@ export default function DashboardPage() {
               <h2 className="font-syne font-bold text-base text-text-primary">
                 Logros e Insignias
               </h2>
-              <button
-                onClick={() => router.push('/goals')}
-                className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
-                aria-label="Ver todas las insignias"
-              >
-                Ver todas <ArrowRight size={14} aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push('/leaderboard')}
+                  className="flex items-center gap-1 text-yellow-500 text-xs font-dm font-semibold hover:text-yellow-600"
+                  aria-label="Ver ranking"
+                >
+                  Ranking <Trophy size={12} aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => router.push('/goals')}
+                  className="flex items-center gap-1 text-primary text-xs font-dm font-semibold hover:text-primary-dark"
+                  aria-label="Ver todas las insignias"
+                >
+                  Ver todas <ArrowRight size={14} aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <div className="flex overflow-x-auto gap-4 scrollbar-none pb-2 pt-1 px-1">
