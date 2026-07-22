@@ -616,9 +616,11 @@ export default function AnalyticsPage() {
  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
  <TrendingUp size={20} />
  </div>
- <p className="font-mono font-bold text-lg text-text-primary">
- {benchmarks?.overallSavingsComparison ? `+${benchmarks.overallSavingsComparison}%` : '+15.2%'}
- </p>
+  <p className="font-mono font-bold text-lg text-text-primary">
+  {benchmarks?.overallSavingsComparison !== undefined && benchmarks.overallSavingsComparison !== null
+    ? `${benchmarks.overallSavingsComparison >= 0 ? '+' : ''}${benchmarks.overallSavingsComparison}%`
+    : '+15.2%'}
+  </p>
  <p className="font-dm text-[10px] text-text-secondary mt-1">
  Tu tasa de ahorro vs. promedio local
  </p>

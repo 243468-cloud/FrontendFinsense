@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Plus, Target, Users, BarChart3,
-  Bell, Settings, ArrowRight, Flame, Check, Search, Receipt, Trophy, Lightbulb, User, Star, Gamepad2
+  Bell, Settings, ArrowRight, Flame, Check, Search, Receipt, Trophy, Lightbulb, User, Star, Gamepad2, Smartphone, X
 } from 'lucide-react';
 
 import {
@@ -62,6 +62,11 @@ export default function DashboardPage() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [showChestModal, setShowChestModal] = useState(false);
 
+  // PWA install
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
   // ─── Data fetch function (reusable for refresh) ───
   const fetchDashboardData = (isMounted: () => boolean) => {
     getTransactions({ limit: 5 }).then(txs => {
@@ -116,8 +121,20 @@ export default function DashboardPage() {
 
     fetchDashboardData(isMounted);
 
-    if (!goalsLoaded) {
-      fetchGoals().catch(err => { console.error(err); addToast({ message: 'Error cargando metas', type: 'error' }); });
+    fetchGoals().catch(err => { console.error(err); addToast({ message: 'Error cargando metas', type: 'error' }); });
+
+    // PWA install prompt listener
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+      // Show banner after a short delay (once user has loaded dashboard)
+      setTimeout(() => setShowInstallBanner(true), 3000);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // If already installed (standalone), hide
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false);
     }
 
     // Bug 1 fix: re-fetch when user returns to this tab
@@ -132,6 +149,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeinstallprompt', () => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addToast, goalsLoaded, fetchGoals]);
@@ -185,6 +203,17 @@ export default function DashboardPage() {
   const firstName = user?.name.split(' ')[0] ?? 'Usuario';
   const currentXp = gamiProfile?.xp ?? user?.xp ?? 0;
   const currentLevel = user ? getLevelProgress(currentXp).level : 1;
+
+  async function handleInstallPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+      setShowInstallBanner(false);
+      setDeferredPrompt(null);
+    }
+  }
 
   return (
     <PageTransition className="min-h-screen bg-surface-2">
@@ -276,6 +305,44 @@ export default function DashboardPage() {
       </header>
 
       <main className="px-3 sm:px-4 py-6 md:px-6 w-full max-w-5xl mx-auto space-y-8 pb-24 relative z-10 overflow-x-hidden sm:overflow-visible">
+
+        {/* PWA Install Banner */}
+        <AnimatePresence>
+          {isInstallable && showInstallBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-gradient-to-r from-primary to-accent rounded-2xl p-4 flex items-center justify-between gap-3 shadow-blue-md"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                  <Smartphone size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-syne font-bold text-white text-sm truncate">¡Instala FinSense como App!</h3>
+                  <p className="font-dm text-xs text-white/80 truncate">Accede más rápido desde tu pantalla de inicio.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleInstallPWA}
+                  className="bg-white text-primary font-bold font-dm text-xs px-3 py-2 rounded-xl hover:bg-surface transition-colors whitespace-nowrap"
+                >
+                  Instalar
+                </button>
+                <button
+                  onClick={() => setShowInstallBanner(false)}
+                  className="text-white/70 hover:text-white p-1 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Top Row: Panic & Pet */}
         <div className="flex flex-row gap-3 sm:gap-4 w-full min-w-0">

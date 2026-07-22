@@ -24,7 +24,9 @@ export default function BudgetBalancer() {
     setGameState('loading');
     try {
       const { data } = await api.get('/gamification/budget-game-data');
-      setIncome(data.income || 10000);
+      // Round income to nearest 100 so sliders (step=100) can sum to exactly the income amount
+      const rawIncome = data.income || 10000;
+      setIncome(Math.round(rawIncome / 100) * 100);
       setNeeds(0);
       setWants(0);
       setSavings(0);
@@ -204,7 +206,7 @@ export default function BudgetBalancer() {
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 }`}
               >
-                {remaining === 0 ? 'Evaluar Presupuesto' : 'Debes asignar exactamente $10,000'}
+                {remaining === 0 ? 'Evaluar Presupuesto' : `Debes asignar exactamente $${income.toLocaleString('es-MX')}`}
               </button>
             </motion.div>
           )}

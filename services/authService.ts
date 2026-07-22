@@ -54,6 +54,19 @@ export async function getProfile(): Promise<User> {
   return data;
 }
 
+export async function updateProfile(profileData: {
+  name?: string;
+  email?: string;
+  city?: string;
+  occupation?: string;
+  birthDate?: string;
+  monthlyIncome?: number;
+  avatar?: string;
+}): Promise<User> {
+  const { data } = await apiClient.patch<User>('/auth/profile', profileData);
+  return data;
+}
+
 export function logout(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(TOKEN_KEY);

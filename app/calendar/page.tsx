@@ -40,18 +40,27 @@ export default function CalendarPage() {
     Promise.all([getSubscriptions(), getGoals(), getCalendarEvents()]).then(([subs, goals, customEvents]) => {
       const allEvents: Event[] = [];
       
-      // Add Subscriptions for next 30 days
+      // Add Subscriptions - generate recurring events for next 3 billing cycles
       subs.forEach(s => {
         if (s.status === 'active') {
-          allEvents.push({
-            id: `sub_${s.id}`,
-            date: new Date(s.nextBillingDate),
-            title: `Pago de ${s.name}`,
-            amount: s.cost,
-            type: 'subscription',
-            icon: CreditCard,
-            color: 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400'
-          });
+          const baseDate = new Date(s.nextBillingDate);
+          // For monthly subs, generate events for the next 3 months; yearly just one
+          const occurrences = s.billingCycle === 'monthly' ? 3 : 1;
+          for (let i = 0; i < occurrences; i++) {
+            const eventDate = new Date(baseDate);
+            if (i > 0 && s.billingCycle === 'monthly') {
+              eventDate.setMonth(eventDate.getMonth() + i);
+            }
+            allEvents.push({
+              id: `sub_${s.id}_${i}`,
+              date: eventDate,
+              title: `Pago de ${s.name}`,
+              amount: s.cost,
+              type: 'subscription',
+              icon: CreditCard,
+              color: 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400'
+            });
+          }
         }
       });
 

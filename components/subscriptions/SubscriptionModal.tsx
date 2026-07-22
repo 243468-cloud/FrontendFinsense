@@ -155,6 +155,26 @@ export function SubscriptionModal({ isOpen, onClose, onSuccess, subscription }: 
             </div>
 
             <div>
+              <label className="block font-dm text-xs font-semibold text-text-secondary mb-1.5">Categoría</label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-surface-2 text-text-primary focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-dm text-sm"
+              >
+                <option value="entertainment">Entretenimiento</option>
+                <option value="streaming">Streaming</option>
+                <option value="music">Música</option>
+                <option value="food">Comida / Delivery</option>
+                <option value="transport">Transporte</option>
+                <option value="fitness">Fitness / Gimnasio</option>
+                <option value="education">Educación</option>
+                <option value="software">Software / Apps</option>
+                <option value="utilities">Servicios / Utilidades</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+
+            <div>
               <label className="block font-dm text-xs font-semibold text-text-secondary mb-1.5">Próximo Cobro</label>
               <input
                 required

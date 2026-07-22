@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { getInitials, cn, getTodayISO } from '@/lib/utils';
 import { ExportModal } from '@/components/ui/ExportModal';
+import { updateProfile } from '@/services/authService';
 
 const CHIAPAS_CITIES = ['Tuxtla Gutiérrez', 'Suchiapa', 'San Cristóbal', 'Comitán', 'Tapachula'];
 
@@ -88,12 +89,14 @@ export default function ProfilePage() {
     }
   }, [preferences.theme]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileName.trim() || !profileEmail.trim()) {
       addToast({ message: 'Nombre y correo son obligatorios', type: 'warning' });
       return;
     }
+
+    // Update local store immediately for responsive UX
     updateUserProfile({
       name: profileName.trim(),
       email: profileEmail.trim(),
@@ -109,7 +112,22 @@ export default function ProfilePage() {
       privacy: { hideBalances }
     });
 
-    addToast({ message: 'Perfil actualizado correctamente', type: 'success' });
+    // Persist to backend so changes survive logout/re-login
+    try {
+      await updateProfile({
+        name: profileName.trim(),
+        email: profileEmail.trim(),
+        city: profileCity,
+        avatar: profileAvatar,
+        occupation: profileOccupation.trim() || undefined,
+        monthlyIncome: profileIncome ? parseFloat(profileIncome) : undefined,
+        birthDate: profileBirth || undefined,
+      });
+      addToast({ message: 'Perfil actualizado correctamente', type: 'success' });
+    } catch (err: any) {
+      // Still show success for local changes; warn about backend sync failure
+      addToast({ message: 'Perfil guardado localmente. Error al sincronizar con el servidor.', type: 'warning' });
+    }
   };
 
   const handleAddTag = (e: React.FormEvent) => {

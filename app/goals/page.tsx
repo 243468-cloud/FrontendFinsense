@@ -225,10 +225,8 @@ export default function GoalsPage() {
   } : null;
 
   useEffect(() => {
-    if (!hasLoaded) {
-      fetchGoals().catch(() => addToast({ message: 'Error cargando metas', type: 'error' }));
-    }
-  }, [hasLoaded, fetchGoals, addToast]);
+    fetchGoals().catch(() => addToast({ message: 'Error cargando metas', type: 'error' }));
+  }, [fetchGoals, addToast]);
 
   useEffect(() => {
     getProfile()
